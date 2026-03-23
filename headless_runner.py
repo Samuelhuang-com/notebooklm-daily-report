@@ -83,12 +83,60 @@ log = logging.getLogger("headless")
 # =============================================================================
 # Config
 # =============================================================================
+def _load_yaml_config(path: str = "config.yaml") -> dict:
+    """
+    Load config.yaml.  Returns empty dict if file not found or pyyaml not installed.
+    pyyaml is in requirements_headless.txt so should always be available.
+    """
+    try:
+        import yaml
+        cfg_path = Path(path)
+        if not cfg_path.exists():
+            # Also try relative to script location
+            cfg_path = Path(__file__).parent / path
+        if cfg_path.exists():
+            log.info(f"設定檔載入：{cfg_path}")
+            with open(cfg_path, encoding="utf-8") as f:
+                return yaml.safe_load(f) or {}
+        log.warning(f"找不到設定檔 {path}，將使用環境變數預設值")
+    except Exception as e:
+        log.warning(f"設定檔載入失敗：{e}，將使用環境變數預設值")
+    return {}
+
+
 class Config:
-    def __init__(self):
+    def __init__(self, config_file: str = "config.yaml"):
+        # Load config.yaml first, then Secrets override where set
+        _cfg = _load_yaml_config(config_file)
+        _yt  = _cfg.get("youtube", {}) or {}
+        _pr  = _cfg.get("prices", {}) or {}
+        _nb  = _cfg.get("notebooklm", {}) or {}
+        _rp  = _cfg.get("report", {}) or {}
+
+        # ── Secrets (sensitive – always from GitHub Secrets / env) ────────────
         self.youtube_api_key    = os.environ.get("YOUTUBE_API_KEY", "").strip()
         self.notebook_id        = os.environ.get("NOTEBOOK_ID", "").strip()
-        self.analysis_command = os.environ.get(
-            "ANALYSIS_COMMAND",
+        self.storage_state_b64  = os.environ.get("STORAGE_STATE_B64", "").strip()
+        self.email_from         = os.environ.get("EMAIL_FROM", "").strip()
+        self.email_app_password = os.environ.get("EMAIL_APP_PASSWORD", "").strip()
+        self.line_token         = os.environ.get("LINE_NOTIFY_TOKEN", "").strip()
+        self.gdrive_sa_b64      = os.environ.get("GDRIVE_SA_JSON_B64", "").strip()
+        self.gdrive_folder_id   = os.environ.get("GDRIVE_FOLDER_ID", "").strip()
+
+        # EMAIL_TO: Secret overrides config (comma separated)
+        _email_secret = os.environ.get("EMAIL_TO", "").strip()
+        if _email_secret:
+            self.email_to = [e.strip() for e in _email_secret.split(",") if e.strip()]
+        else:
+            _email_yaml = _cfg.get("email_to", "") or ""
+            self.email_to = [e.strip() for e in str(_email_yaml).split(",") if e.strip()]
+
+        # ── Analysis settings (config.yaml, Secret overrides if set) ──────────
+        # analysis_command: yaml value first, then ANALYSIS_COMMAND secret
+        _cmd_yaml   = str(_cfg.get("analysis_command", "") or "").strip()
+        _cmd_secret = os.environ.get("ANALYSIS_COMMAND", "").strip()
+        self.analysis_command = (
+            _cmd_secret or _cmd_yaml or
             "台股 美股 ETF 投資 財經｜"
             "請整理今天最熱門的投資影片，重點萃取："
             "1. 提到的股票代號、ETF代號、目標價、支撐壓力位 "
@@ -96,30 +144,64 @@ class Config:
             "3. 每支影片的核心論點（1-2句）"
             "4. 播放量特別高的原因（標題策略、發布時機、獨家資訊）"
             "輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表"
+        )
+
+        # YouTube settings – yaml first, env override if set
+        self.top_n       = int(os.environ.get("TOP_N") or _yt.get("top_n", 10) or 10)
+        self.region_code = (os.environ.get("REGION_CODE") or
+                            str(_yt.get("region_code", "TW"))).strip() or "TW"
+        self.language    = (os.environ.get("LANGUAGE") or
+                            str(_yt.get("language", "zh-Hant"))).strip() or "zh-Hant"
+        self.min_minutes = int(os.environ.get("MIN_MINUTES") or _yt.get("min_minutes", 0) or 0)
+        self.search_hours_back = int(
+            os.environ.get("SEARCH_HOURS_BACK") or _yt.get("search_hours_back", 21) or 21)
+
+        # Fixed channels from config.yaml
+        _ch_yaml = _yt.get("fixed_channels", []) or []
+        self.fixed_channels: List[str] = [
+            str(ch).strip() for ch in (_ch_yaml if isinstance(_ch_yaml, list) else [])
+            if str(ch).strip()
+        ]
+        self.channel_videos_per = int(
+            os.environ.get("CHANNEL_VIDEOS_PER") or _yt.get("channel_videos_per", 3) or 3)
+
+        # Extra tickers from config.yaml + EXTRA_TICKERS secret
+        _tickers_yaml   = _pr.get("extra_tickers", []) or []
+        _tickers_secret = [t.strip() for t in
+                           os.environ.get("EXTRA_TICKERS", "").split(",") if t.strip()]
+        seen_t: set = set()
+        self.extra_tickers: List[str] = []
+        for t in list(_tickers_yaml) + _tickers_secret:
+            t = str(t).strip()
+            if t and t not in seen_t:
+                seen_t.add(t)
+                self.extra_tickers.append(t)
+
+        # NotebookLM infographic settings
+        self.infographic_instructions = str(
+            _nb.get("infographic_instructions", "請用繁體中文生成資訊圖表，風格清楚商業感。")
         ).strip()
-        self.top_n              = int(os.environ.get("TOP_N", "10") or 10)
-        self.region_code        = os.environ.get("REGION_CODE", "TW").strip()
-        self.language           = os.environ.get("LANGUAGE", "zh-Hant").strip()
-        self.min_minutes        = int(os.environ.get("MIN_MINUTES", "0") or 0)
-        self.storage_state_b64  = os.environ.get("STORAGE_STATE_B64", "").strip()
-        self.email_to           = [e.strip() for e in
-                                   os.environ.get("EMAIL_TO", "").split(",") if e.strip()]
-        self.email_from         = os.environ.get("EMAIL_FROM", "").strip()
-        self.email_app_password = os.environ.get("EMAIL_APP_PASSWORD", "").strip()
-        self.line_token         = os.environ.get("LINE_NOTIFY_TOKEN", "").strip()
-        self.gdrive_sa_b64      = os.environ.get("GDRIVE_SA_JSON_B64", "").strip()
-        self.gdrive_folder_id   = os.environ.get("GDRIVE_FOLDER_ID", "").strip()
-        self.extra_tickers      = [t.strip() for t in
-                                   os.environ.get("EXTRA_TICKERS", "").split(",") if t.strip()]
+
+        # Report subject prefix
+        self.subject_prefix = str(
+            _rp.get("subject_prefix", "📊 投資分析日報")
+        ).strip()
+
+        # Log what was loaded
+        log.info(f"設定摘要：")
+        log.info(f"  分析指令來源：{'Secret' if _cmd_secret else 'config.yaml'}")
+        log.info(f"  搜尋時間窗口：{self.search_hours_back} 小時")
+        log.info(f"  固定頻道數量：{len(self.fixed_channels)}")
+        log.info(f"  額外報價代號：{', '.join(self.extra_tickers) or '（無）'}")
 
     def validate(self) -> List[str]:
         errors = []
         if not self.youtube_api_key:
-            errors.append("YOUTUBE_API_KEY 未設定")
+            errors.append("YOUTUBE_API_KEY 未設定（需放在 GitHub Secrets）")
         if not self.notebook_id and _HAS_NOTEBOOKLM:
-            errors.append("NOTEBOOK_ID 未設定")
+            errors.append("NOTEBOOK_ID 未設定（需放在 GitHub Secrets）")
         if not self.storage_state_b64 and _HAS_NOTEBOOKLM:
-            errors.append("STORAGE_STATE_B64 未設定（需要 NotebookLM 登入資料）")
+            errors.append("STORAGE_STATE_B64 未設定（需放在 GitHub Secrets）")
         return errors
 
 
@@ -298,19 +380,23 @@ class YouTubeSearcher:
         region_code: str = "TW",
         relevance_language: str = "zh-Hant",
         min_minutes: int = 0,
+        hours_back: int = 21,
     ) -> List[VideoItem]:
         queries = infer_queries(command)
         self.logger(f"搜尋關鍵字：{' | '.join(queries)}")
 
-        tw_now      = datetime.now(timezone(timedelta(hours=8)))
-        tw_midnight = tw_now.replace(hour=0, minute=0, second=0, microsecond=0)
-        tw_week_ago = tw_midnight - timedelta(days=6)
-        utc_today   = tw_midnight.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        utc_week    = tw_week_ago.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        tw_now     = datetime.now(timezone(timedelta(hours=8)))
+        # Window start: hours_back hours ago (default = yesterday 12:00 if run at 09:00)
+        window_start = tw_now - timedelta(hours=hours_back)
+        utc_start    = window_start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self.logger(
+            f"搜尋時間窗口：{window_start.strftime('%Y-%m-%d %H:%M')} "
+            f"~ {tw_now.strftime('%Y-%m-%d %H:%M')}（台北時間）"
+        )
 
         candidates: Dict[str, dict] = {}
         for q in queries:
-            for pub_after, label in [(utc_today, "今日"), (utc_week, "本週")]:
+            for pub_after, label in [(utc_start, f"近{hours_back}小時")]:
                 try:
                     data = self._request(self.SEARCH_URL, {
                         "part": "snippet", "type": "video",
@@ -378,6 +464,131 @@ class YouTubeSearcher:
             v.rank = idx
         self.logger(f"✅ 最終選取：{len(picked)} 支（依播放量排序）")
         return picked
+
+
+    def fetch_channel_recent_videos(
+        self,
+        channel_ref: str,
+        hours_back: int = 21,
+        max_videos: int = 3,
+    ) -> List[VideoItem]:
+        """Fetch recent videos from a specific channel within the time window."""
+        from urllib.parse import unquote, urlparse as _urlparse
+
+        ref = channel_ref.strip()
+        if not ref:
+            return []
+
+        channel_id = ""
+        channel_name = ref
+
+        # Try to get channel ID from URL or @handle
+        if ref.startswith("http"):
+            try:
+                parsed = _urlparse(ref)
+                path   = unquote(parsed.path or "")
+                m = re.search(r"/channel/(UC[\w-]{20,})", path)
+                if m:
+                    channel_id = m.group(1)
+                if not channel_id:
+                    resp = self.session.get(ref, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+                    if resp.status_code == 200:
+                        m2 = re.search(r'"channelId":"(UC[\w-]{20,})"', resp.text)
+                        if not m2:
+                            m2 = re.search(r'"externalId":"(UC[\w-]{20,})"', resp.text)
+                        if m2:
+                            channel_id = m2.group(1)
+                        t = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', resp.text, re.I)
+                        if t:
+                            channel_name = t.group(1).strip()
+            except Exception as e:
+                self.logger(f"  解析頻道網址失敗 {ref}: {e}")
+
+        if not channel_id:
+            # Search by handle/name
+            q = ref.lstrip("@").split("/")[-1]
+            try:
+                data  = self._request(self.SEARCH_URL, {
+                    "part": "snippet", "type": "channel",
+                    "maxResults": 3, "q": q, "safeSearch": "none",
+                })
+                items = data.get("items", []) or []
+                if items:
+                    best = items[0]
+                    channel_id   = safe_str((best.get("snippet") or {}).get("channelId")
+                                            or (best.get("id") or {}).get("channelId"))
+                    channel_name = safe_str((best.get("snippet") or {}).get("channelTitle") or q)
+            except Exception as e:
+                self.logger(f"  搜尋頻道失敗 {ref}: {e}")
+                return []
+
+        if not channel_id:
+            self.logger(f"  ⚠ 找不到頻道 ID：{ref}")
+            return []
+
+        self.logger(f"  頻道：{channel_name} ({channel_id})")
+
+        tw_now       = datetime.now(timezone(timedelta(hours=8)))
+        window_start = tw_now - timedelta(hours=hours_back)
+        utc_start    = window_start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        try:
+            data  = self._request(self.SEARCH_URL, {
+                "part": "snippet", "type": "video",
+                "channelId": channel_id, "maxResults": 10,
+                "order": "date", "publishedAfter": utc_start,
+                "safeSearch": "none",
+            })
+        except Exception as e:
+            self.logger(f"  ⚠ 搜尋頻道影片失敗：{e}")
+            return []
+
+        vid_ids = [safe_str((item.get("id") or {}).get("videoId"))
+                   for item in (data.get("items") or [])
+                   if safe_str((item.get("id") or {}).get("videoId"))]
+
+        if not vid_ids:
+            self.logger(f"  {channel_name}：此時間窗口內無新影片")
+            return []
+
+        # Fetch details
+        details: Dict[str, dict] = {}
+        det = self._request(self.VIDEOS_URL, {
+            "part": "contentDetails,statistics,snippet",
+            "id": ",".join(vid_ids[:10]), "maxResults": 10,
+        })
+        for item in det.get("items", []) or []:
+            details[safe_str(item.get("id"))] = item
+
+        result: List[VideoItem] = []
+        for vid in vid_ids:
+            item = details.get(vid)
+            if not item:
+                continue
+            snippet  = item.get("snippet")        or {}
+            stats    = item.get("statistics")     or {}
+            content  = item.get("contentDetails") or {}
+            dur      = iso8601_duration_to_seconds(safe_str(content.get("duration")))
+            if dur <= 60:
+                continue   # skip Shorts
+            views = parse_views_to_int(stats.get("viewCount"))
+            result.append(VideoItem(
+                rank=0,
+                title=safe_str(snippet.get("title")),
+                channel=channel_name,
+                url=f"https://www.youtube.com/watch?v={vid}",
+                published_at=safe_str(snippet.get("publishedAt")),
+                published_local=to_taipei_display(safe_str(snippet.get("publishedAt"))),
+                views_text=format_views(views),
+                views_num=views,
+                duration_text=seconds_to_hms(dur),
+                duration_seconds=dur,
+                description=safe_str(snippet.get("description")),
+            ))
+
+        result = result[:max_videos]
+        self.logger(f"  {channel_name}：取得 {len(result)} 支影片")
+        return result
 
 
 # =============================================================================
@@ -829,42 +1040,92 @@ async def run_notebooklm_pipeline(
         infographic_path: Optional[Path] = None
         logger("產生 Infographic…")
         try:
+            import tempfile, traceback as _tb
             orient = getattr(InfographicOrientation, "PORTRAIT", None) if InfographicOrientation else None
             detail = getattr(InfographicDetail, "DETAILED", None) if InfographicDetail else None
-            instructions = (
-                "請用繁體中文生成資訊圖表。"
-                "風格清楚、商業報告感，適合主管閱讀。"
-                "重點包含：股票/ETF彙整、博主共識、風險警示。"
+            instructions = cfg.infographic_instructions if hasattr(cfg, "infographic_instructions") else (
+                "請用繁體中文生成資訊圖表，風格清楚商業感。"
             )
-            # Try with full params, fall back to minimal
-            info_status = None
-            for attempt_fn in [
-                lambda: client.artifacts.generate_infographic(
-                    notebook_id, instructions=instructions,
-                    language="zh_Hant", orientation=orient, detail=detail),
-                lambda: client.artifacts.generate_infographic(
-                    notebook_id, instructions=instructions),
-                lambda: client.artifacts.generate_infographic(notebook_id),
-            ]:
-                try:
-                    info_status = await attempt_fn()
-                    break
-                except TypeError:
-                    continue
 
-            if info_status:
+            # Snapshot before – to detect the new artifact after generation
+            infos_before = []
+            try:
+                infos_before = await client.artifacts.list_infographics(notebook_id)
+                logger(f"  現有 Infographic 數量：{len(infos_before)}")
+            except Exception as _e:
+                logger(f"  list_infographics (before) 失敗（不影響）：{_e}")
+
+            # Try with progressively simpler params
+            info_status = None
+            attempts = [
+                ("完整參數", lambda: client.artifacts.generate_infographic(
+                    notebook_id, instructions=instructions,
+                    language="zh_Hant", orientation=orient, detail=detail)),
+                ("移除 detail", lambda: client.artifacts.generate_infographic(
+                    notebook_id, instructions=instructions, language="zh_Hant")),
+                ("instructions only", lambda: client.artifacts.generate_infographic(
+                    notebook_id, instructions=instructions)),
+                ("bare", lambda: client.artifacts.generate_infographic(notebook_id)),
+            ]
+            for label, fn in attempts:
+                try:
+                    logger(f"  嘗試 generate_infographic（{label}）…")
+                    info_status = await fn()
+                    logger(f"  generate_infographic 回傳 task_id={getattr(info_status, 'task_id', '?')}")
+                    break
+                except TypeError as te:
+                    logger(f"  TypeError，嘗試下一組參數：{te}")
+                    continue
+                except Exception as ge:
+                    logger(f"  generate_infographic 失敗（{label}）：{ge}")
+                    break
+
+            if info_status and getattr(info_status, "task_id", None):
+                logger(f"  等待 Infographic 完成（task_id={info_status.task_id}）…")
                 await client.artifacts.wait_for_completion(
                     notebook_id, info_status.task_id, timeout=600, initial_interval=5)
-                import tempfile
+                logger("  Infographic 已完成，準備下載…")
+
+                # Detect new artifact
+                artifact_id = None
+                try:
+                    infos_after = await client.artifacts.list_infographics(notebook_id)
+                    logger(f"  完成後 Infographic 數量：{len(infos_after)}")
+                    before_ids = {getattr(i, "id", None) or (i[0] if isinstance(i, (list,tuple)) else None)
+                                  for i in infos_before}
+                    for item in infos_after:
+                        aid = getattr(item, "id", None) or (item[0] if isinstance(item, (list,tuple)) else None)
+                        if aid and aid not in before_ids:
+                            artifact_id = aid
+                            break
+                    if not artifact_id and infos_after:
+                        item = infos_after[0]
+                        artifact_id = getattr(item, "id", None) or (item[0] if isinstance(item, (list,tuple)) else None)
+                    logger(f"  Infographic artifact_id={artifact_id}")
+                except Exception as _e:
+                    logger(f"  list_infographics (after) 失敗：{_e}")
+
                 tmp_png = Path(tempfile.mktemp(suffix=".png"))
-                await client.artifacts.download_infographic(notebook_id, str(tmp_png))
-                if tmp_png.exists() and tmp_png.stat().st_size > 0:
-                    infographic_path = tmp_png
-                    logger(f"✅ Infographic 已下載：{tmp_png.stat().st_size // 1024} KB")
-                else:
-                    logger("⚠ Infographic 下載後檔案為空")
+                try:
+                    if artifact_id:
+                        await client.artifacts.download_infographic(
+                            notebook_id, str(tmp_png), artifact_id=artifact_id)
+                    else:
+                        await client.artifacts.download_infographic(notebook_id, str(tmp_png))
+                    if tmp_png.exists() and tmp_png.stat().st_size > 0:
+                        infographic_path = tmp_png
+                        logger(f"✅ Infographic 已下載：{tmp_png.stat().st_size // 1024} KB")
+                    else:
+                        logger("⚠ Infographic 下載後檔案為空或不存在")
+                except Exception as dl_e:
+                    logger(f"  download_infographic 失敗：{dl_e}")
+                    logger(_tb.format_exc())
+            else:
+                logger("⚠ generate_infographic 未回傳有效 task_id，略過下載")
         except Exception as e:
-            logger(f"  ⚠ Infographic 產生失敗：{e}")
+            logger(f"  ⚠ Infographic 流程異常：{e}")
+            import traceback as _tb2
+            logger(_tb2.format_exc())
 
     return {
         "summary_md": summary_md,
@@ -1002,19 +1263,47 @@ async def main_async(cfg: Config):
 
     # ── YouTube search ───────────────────────────────────────────────────────
     log.info("🔍 Step 1: YouTube 搜尋…")
+    log.info(f"  搜尋時間窗口：過去 {cfg.search_hours_back} 小時")
     videos: List[VideoItem] = []
     try:
-        yt      = YouTubeSearcher(cfg.youtube_api_key, log.info)
-        videos  = yt.search_videos(
+        yt     = YouTubeSearcher(cfg.youtube_api_key, log.info)
+        videos = yt.search_videos(
             cfg.analysis_command,
             top_n=cfg.top_n,
             region_code=cfg.region_code,
             relevance_language=cfg.language,
             min_minutes=cfg.min_minutes,
+            hours_back=cfg.search_hours_back,
         )
-        log.info(f"找到 {len(videos)} 支影片")
+        log.info(f"關鍵字搜尋找到 {len(videos)} 支影片")
     except Exception as e:
         log.error(f"YouTube 搜尋失敗：{e}")
+
+    # ── Fixed YouTuber channels ───────────────────────────────────────────────
+    if cfg.fixed_channels:
+        log.info(f"📺 Step 1b: 抓取固定 YouTuber 頻道（共 {len(cfg.fixed_channels)} 個）…")
+        existing_urls = {v.url for v in videos}
+        for ch_ref in cfg.fixed_channels:
+            try:
+                ch_videos = yt.fetch_channel_recent_videos(
+                    ch_ref,
+                    hours_back=cfg.search_hours_back,
+                    max_videos=cfg.channel_videos_per,
+                )
+                added = 0
+                for cv in ch_videos:
+                    if cv.url not in existing_urls:
+                        videos.append(cv)
+                        existing_urls.add(cv.url)
+                        added += 1
+                log.info(f"  {ch_ref[:50]}：新增 {added} 支")
+            except Exception as e:
+                log.warning(f"  ⚠ 頻道抓取失敗 {ch_ref[:50]}: {e}")
+
+        # Re-rank
+        for idx, v in enumerate(videos, start=1):
+            v.rank = idx
+        log.info(f"固定頻道加入後，共 {len(videos)} 支影片")
 
     # ── Investment prices ────────────────────────────────────────────────────
     log.info("💹 Step 2: 查詢投資報價…")
@@ -1093,7 +1382,7 @@ async def main_async(cfg: Config):
 
     # ── Email ────────────────────────────────────────────────────────────────
     log.info("📧 Step 7: 寄送 Email…")
-    email_subject = f"📊 投資分析日報 {analysis_date}"
+    email_subject = f"{cfg.subject_prefix} {analysis_date}"
     # Build attachments list: HTML always included, PNG if available
     email_attachments = [html_path]
     if infographic_path and Path(infographic_path).exists():
