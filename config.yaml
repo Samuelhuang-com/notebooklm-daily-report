@@ -40,6 +40,7 @@ youtube:
   #   - @handle：@imoneytalk
   fixed_channels:
     - "https://www.youtube.com/@早見說財經"
+    - "https://www.youtube.com/@oldwangstock"
     # 在下面新增更多頻道，取消 # 號即可：
     # - "https://www.youtube.com/@imoneytalk"
     # - "https://www.youtube.com/@股癌"
