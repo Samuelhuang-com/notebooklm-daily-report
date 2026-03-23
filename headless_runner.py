@@ -92,8 +92,13 @@ class Config:
         self.notebook_id = os.environ.get("NOTEBOOK_ID", "").strip()
         self.analysis_command = os.environ.get(
             "ANALYSIS_COMMAND",
-            "台股 美股 ETF 投資 財經｜請整理今天最熱門的投資影片，"
-            "整理重點股票/ETF觀點、博主論點、共識與分歧。",
+            "台股 美股 ETF 投資 財經｜"
+            "請整理今天最熱門的投資影片，重點萃取："
+            "1. 提到的股票代號、ETF代號、目標價、支撐壓力位 "
+            "2. 博主觀點與市場共識分歧 "
+            "3. 每支影片的核心論點（1-2句）"
+            "4. 播放量特別高的原因（標題策略、發布時機、獨家資訊）"
+            "輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表"
         ).strip()
         self.top_n = int(os.environ.get("TOP_N", "10") or 10)
         self.region_code = os.environ.get("REGION_CODE", "TW").strip()
