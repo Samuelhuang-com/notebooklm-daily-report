@@ -4,6 +4,9 @@
 # YouTube API
 requests>=2.31.0
 
+# Config file parsing
+pyyaml>=6.0.1
+
 # NotebookLM
 notebooklm-py>=0.3.0
 playwright>=1.42.0
