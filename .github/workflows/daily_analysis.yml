@@ -1,98 +1,87 @@
 name: 投資日報自動分析
 
 on:
-    # 每天台北時間 09:00 執行（= UTC 01:00）
-    schedule:
-        - cron: "0 1 * * 1-5" # 週一到週五（交易日）
-        # 若要改成每天包含週末：
-        # - cron: "0 1 * * *"
+  # ── 自動排程：每 30 分鐘檢查一次，Python 程式自行判斷哪個任務需要執行 ──────
+  schedule:
+    - cron: "0,30 * * * *"
 
-    # 手動觸發（方便測試）
-    workflow_dispatch:
-        inputs:
-            command:
-                description: "分析指令（留空使用 Secret 預設值）"
-                required: false
-                default: ""
-            top_n:
-                description: "抓取影片數量（預設 10）"
-                required: false
-                default: "10"
+  # ── 手動觸發 ────────────────────────────────────────────────────────────────
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: "執行指定任務 ID（留空=執行所有到時間的任務）"
+        required: false
+        default: ""
+      command_override:
+        description: "臨時分析指令（留空=使用 config.yaml 設定）"
+        required: false
+        default: ""
 
 jobs:
-    daily-analysis:
-        name: 每日投資分析
-        runs-on: ubuntu-latest
-        timeout-minutes: 30
+  run-analysis:
+    name: 執行投資分析
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
 
-        steps:
-            # ── 1. Checkout repo ────────────────────────────────────────────────────
-            - name: 📥 Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
 
-            # ── 2. Python setup ─────────────────────────────────────────────────────
-            - name: 🐍 Setup Python 3.11
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.11"
-                  cache: "pip"
-                  cache-dependency-path: requirements_headless.txt 
+      - name: 🐍 Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements_headless.txt
 
-            # ── 3. Install dependencies ─────────────────────────────────────────────
-            - name: 📦 Install dependencies
-              run: |
-                  pip install --upgrade pip
-                  pip install -r requirements_headless.txt
+      - name: 📦 Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements_headless.txt
 
-            # ── 4. Install Playwright Chromium ──────────────────────────────────────
-            - name: 🌐 Install Playwright Chromium
-              run: |
-                  python -m playwright install chromium
-                  python -m playwright install-deps chromium
+      - name: 🌐 Install Playwright Chromium
+        run: |
+          python -m playwright install chromium
+          python -m playwright install-deps chromium
 
-            # ── 5. Run analysis ─────────────────────────────────────────────────────
-            - name: 🚀 執行投資分析
-              env:
-                  YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-                  NOTEBOOK_ID: ${{ secrets.NOTEBOOK_ID }}
-                  STORAGE_STATE_B64: ${{ secrets.STORAGE_STATE_B64 }}
-                  EMAIL_TO: ${{ secrets.EMAIL_TO }}
-                  EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-                  EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
-                  LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
-                  GDRIVE_SA_JSON_B64: ${{ secrets.GDRIVE_SA_JSON_B64 }}
-                  GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-                  EXTRA_TICKERS: ${{ secrets.EXTRA_TICKERS }}
-                  # 分析指令：優先使用手動輸入，否則用 Secret
-                  ANALYSIS_COMMAND: >-
-                      ${{ github.event.inputs.command != '' &&
-                          github.event.inputs.command ||
-                          secrets.ANALYSIS_COMMAND }}
-                  TOP_N: ${{ github.event.inputs.top_n || '10' }}
-                  REGION_CODE: "TW"
-                  LANGUAGE: "zh-Hant"
-                  MIN_MINUTES: "0"
-              run: python headless_runner.py
+      - name: 🚀 執行分析
+        env:
+          YOUTUBE_API_KEY:    ${{ secrets.YOUTUBE_API_KEY }}
+          NOTEBOOK_ID:        ${{ secrets.NOTEBOOK_ID }}
+          STORAGE_STATE_B64:  ${{ secrets.STORAGE_STATE_B64 }}
+          EMAIL_TO:           ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM:         ${{ secrets.EMAIL_FROM }}
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+          LINE_NOTIFY_TOKEN:  ${{ secrets.LINE_NOTIFY_TOKEN }}
+          GDRIVE_SA_JSON_B64: ${{ secrets.GDRIVE_SA_JSON_B64 }}
+          GDRIVE_FOLDER_ID:   ${{ secrets.GDRIVE_FOLDER_ID }}
+          JOB_ID:             ${{ github.event.inputs.job_id }}
+          ANALYSIS_COMMAND:   ${{ github.event.inputs.command_override }}
+        run: |
+          if [ -n "$JOB_ID" ]; then
+            echo "手動執行任務：$JOB_ID"
+            python headless_runner.py --job-id "$JOB_ID"
+          else
+            echo "自動模式：依排程判斷"
+            python headless_runner.py
+          fi
 
-            # ── 6. Upload HTML as artifact ──────────────────────────────────────────
-            - name: 📤 Upload HTML report
-              if: always()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: daily-report-${{ github.run_id }}
-                  path: outputs/**/*.html
-                  retention-days: 30
+      - name: 📤 Upload HTML reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.run_id }}
+          path: outputs/**/*.html
+          retention-days: 30
+          if-no-files-found: ignore
 
-            # ── 7. Notify on failure ─────────────────────────────────────────────────
-            - name: ❌ 失敗通知
-              if: failure()
-              run: |
-                  echo "分析失敗，請檢查 GitHub Actions 日誌"
-                  # 若有設定 LINE Token，補送失敗通知
-                  if [ -n "$LINE_NOTIFY_TOKEN" ]; then
-                    curl -s -X POST https://notify-api.line.me/api/notify \
-                      -H "Authorization: Bearer $LINE_NOTIFY_TOKEN" \
-                      -d "message=%0A❌ 投資日報執行失敗%0A請前往 GitHub Actions 查看原因%0Ahttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  fi
-              env:
-                  LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+      - name: ❌ 失敗 LINE 通知
+        if: failure()
+        env:
+          LINE_NOTIFY_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+        run: |
+          if [ -n "$LINE_NOTIFY_TOKEN" ]; then
+            curl -s -X POST https://notify-api.line.me/api/notify \
+              -H "Authorization: Bearer $LINE_NOTIFY_TOKEN" \
+              -d "message=%0A❌ 投資日報執行失敗%0A任務：${JOB_ID:-自動}%0A查看：https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
