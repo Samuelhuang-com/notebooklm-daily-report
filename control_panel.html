@@ -6,845 +6,441 @@
 <title>投資日報控制台</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-/* ── Reset & Variables ─────────────────────────────────────────────────────── */
 :root {
-  --bg:       #080c10;
-  --bg2:      #0d1318;
-  --bg3:      #131a22;
-  --bg4:      #1a2430;
-  --border:   #1e2d3d;
-  --border2:  #263545;
-  --text:     #c8d8e8;
-  --text2:    #7a9ab8;
-  --text3:    #4a6a88;
-  --amber:    #f59e0b;
-  --amber2:   #d97706;
-  --green:    #10b981;
-  --green2:   #059669;
-  --red:      #ef4444;
-  --red2:     #dc2626;
-  --blue:     #3b82f6;
-  --blue2:    #2563eb;
-  --mono:     'Space Mono', monospace;
-  --sans:     'Noto Sans TC', sans-serif;
+  --bg:#080c10; --bg2:#0d1318; --bg3:#131a22; --bg4:#1a2430;
+  --border:#1e2d3d; --border2:#263545;
+  --text:#c8d8e8; --text2:#7a9ab8; --text3:#4a6a88;
+  --amber:#f59e0b; --amber2:#d97706;
+  --green:#10b981; --green2:#059669;
+  --red:#ef4444; --red2:#dc2626;
+  --blue:#3b82f6;
+  --mono:'Space Mono',monospace;
+  --sans:'Noto Sans TC',sans-serif;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.6;
-  min-height: 100vh;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+.app{display:flex;flex-direction:column;min-height:100vh}
 
-/* ── Layout ──────────────────────────────────────────────────────────────────*/
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+/* Topbar */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--amber),var(--amber2));
+  border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.logo-text{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--amber);letter-spacing:.05em}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block;margin-right:5px;transition:background .3s}
+.status-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.err{background:var(--red)}
+.status-dot.busy{background:var(--amber);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.repo-label{font-family:var(--mono);font-size:11px;color:var(--text2)}
 
-/* ── Top Bar ─────────────────────────────────────────────────────────────────*/
-.topbar {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.topbar-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logo-icon {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(135deg, var(--amber), var(--amber2));
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-.logo-text {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--amber);
-  letter-spacing: 0.05em;
-}
-.logo-sub {
-  font-size: 11px;
-  color: var(--text3);
-  margin-top: 1px;
-}
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text3);
-  display: inline-block;
-  margin-right: 6px;
-  transition: background .3s;
-}
-.status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.status-dot.error     { background: var(--red); }
-.status-dot.loading   {
-  background: var(--amber);
-  animation: pulse 1s infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 1; }
-  50%      { opacity: .3; }
-}
-.repo-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text2);
-}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;
+  border:none;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:var(--amber);color:#000}
+.btn-primary:hover:not(:disabled){background:var(--amber2)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover:not(:disabled){background:var(--green2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover:not(:disabled){background:var(--bg4);color:var(--text);border-color:var(--text3)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
 
-/* ── Buttons ─────────────────────────────────────────────────────────────────*/
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 6px;
-  border: none;
-  font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-primary   { background: var(--amber); color: #000; }
-.btn-primary:hover:not(:disabled)   { background: var(--amber2); }
-.btn-success   { background: var(--green); color: #fff; }
-.btn-success:hover:not(:disabled)   { background: var(--green2); }
-.btn-danger    { background: var(--red); color: #fff; }
-.btn-danger:hover:not(:disabled)    { background: var(--red2); }
-.btn-ghost {
-  background: transparent;
-  color: var(--text2);
-  border: 1px solid var(--border2);
-}
-.btn-ghost:hover:not(:disabled) {
-  background: var(--bg4);
-  color: var(--text);
-  border-color: var(--text3);
-}
-.btn-sm { padding: 5px 10px; font-size: 12px; }
+/* Layout */
+.main{display:grid;grid-template-columns:220px 1fr;flex:1}
 
-/* ── Main Grid ───────────────────────────────────────────────────────────────*/
-.main {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  flex: 1;
-}
-@media (max-width: 768px) {
-  .main { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-}
+/* Sidebar */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;
+  position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.nav-section{font-family:var(--mono);font-size:10px;color:var(--text3);
+  letter-spacing:.12em;text-transform:uppercase;padding:10px 18px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:9px 18px;color:var(--text2);
+  cursor:pointer;border-left:2px solid transparent;font-size:13px;transition:all .12s}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg3);color:var(--amber);border-left-color:var(--amber)}
 
-/* ── Sidebar ─────────────────────────────────────────────────────────────────*/
-.sidebar {
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-  padding: 20px 0;
-  position: sticky;
-  top: 52px;
-  height: calc(100vh - 52px);
-  overflow-y: auto;
-}
-.sidebar-section-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  padding: 8px 20px 4px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 20px;
-  color: var(--text2);
-  cursor: pointer;
-  border-left: 2px solid transparent;
-  font-size: 13px;
-  transition: all .12s;
-}
-.nav-item:hover { background: var(--bg3); color: var(--text); }
-.nav-item.active {
-  background: var(--bg3);
-  color: var(--amber);
-  border-left-color: var(--amber);
-}
-.nav-icon { font-size: 15px; width: 20px; text-align: center; }
+/* Content */
+.content{padding:24px 28px;max-width:860px}
 
-/* ── Content ─────────────────────────────────────────────────────────────────*/
-.content {
-  padding: 28px 32px;
-  max-width: 900px;
-}
+/* Card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:18px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;
+  padding:13px 18px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.card-title{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.card-body{padding:18px}
+.sec-title{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text3);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:18px}
 
-/* ── Connection Panel ────────────────────────────────────────────────────────*/
-.connect-panel {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
-  max-width: 540px;
-  margin: 60px auto;
-}
-.connect-title {
-  font-family: var(--mono);
-  font-size: 18px;
-  color: var(--amber);
-  margin-bottom: 8px;
-}
-.connect-sub {
-  color: var(--text2);
-  font-size: 13px;
-  margin-bottom: 28px;
-  line-height: 1.7;
-}
+/* Form */
+.fg{margin-bottom:14px}
+.fg:last-child{margin-bottom:0}
+.lbl{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;
+  font-family:var(--mono);letter-spacing:.02em}
+.hint{font-size:11px;color:var(--text3);margin-top:3px}
+input[type=text],input[type=password],input[type=number],textarea,select{
+  width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 11px;
+  transition:border-color .15s,box-shadow .15s;outline:none}
+input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,
+textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+textarea{font-family:var(--mono);font-size:12px;line-height:1.7;resize:vertical;min-height:110px}
+input[type=number]{font-family:var(--mono);width:90px}
+select{cursor:pointer}
 
-/* ── Card ────────────────────────────────────────────────────────────────────*/
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 20px;
-  overflow: hidden;
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg3);
-}
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text);
-}
-.card-badge {
-  font-family: var(--mono);
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--bg4);
-  color: var(--text3);
-  border: 1px solid var(--border2);
-}
-.card-body { padding: 20px; }
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:540px){.g2{grid-template-columns:1fr}}
 
-/* ── Form Elements ───────────────────────────────────────────────────────────*/
-.form-group { margin-bottom: 16px; }
-.form-group:last-child { margin-bottom: 0; }
-.form-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text2);
-  margin-bottom: 6px;
-  font-family: var(--mono);
-  letter-spacing: .02em;
-}
-.form-hint {
-  font-size: 11px;
-  color: var(--text3);
-  margin-top: 4px;
-}
-input[type=text], input[type=password], input[type=number], textarea, select {
-  width: 100%;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 13px;
-  padding: 8px 12px;
-  transition: border-color .15s, box-shadow .15s;
-  outline: none;
-}
-input[type=text]:focus, input[type=password]:focus,
-input[type=number]:focus, textarea:focus, select:focus {
-  border-color: var(--amber);
-  box-shadow: 0 0 0 2px rgba(245,158,11,.15);
-}
-textarea {
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1.7;
-  resize: vertical;
-  min-height: 120px;
-}
-select { cursor: pointer; }
-input[type=number] { font-family: var(--mono); width: 100px; }
+/* Toggle */
+.trow{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 0;border-bottom:1px solid var(--border)}
+.trow:last-child{border-bottom:none}
+.tlabel{font-size:13px;color:var(--text)}
+.tsub{font-size:11px;color:var(--text3);margin-top:1px}
+.toggle{position:relative;width:38px;height:21px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.tslider{position:absolute;inset:0;background:var(--bg4);border:1px solid var(--border2);
+  border-radius:11px;cursor:pointer;transition:.2s}
+.tslider::before{content:'';position:absolute;width:15px;height:15px;left:2px;top:2px;
+  background:var(--text3);border-radius:50%;transition:.2s}
+.toggle input:checked+.tslider{background:var(--green);border-color:var(--green2)}
+.toggle input:checked+.tslider::before{transform:translateX(17px);background:#fff}
 
-/* ── Toggle ──────────────────────────────────────────────────────────────────*/
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
-}
-.toggle-row:last-child { border-bottom: none; }
-.toggle-label { font-size: 13px; color: var(--text); }
-.toggle-sub   { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.toggle {
-  position: relative;
-  width: 40px;
-  height: 22px;
-  flex-shrink: 0;
-}
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: var(--bg4);
-  border: 1px solid var(--border2);
-  border-radius: 11px;
-  cursor: pointer;
-  transition: .2s;
-}
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  left: 2px;
-  top: 2px;
-  background: var(--text3);
-  border-radius: 50%;
-  transition: .2s;
-}
-.toggle input:checked + .toggle-slider { background: var(--green); border-color: var(--green2); }
-.toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
+/* Channel list */
+.ch-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px}
+.ch-item{display:flex;align-items:center;gap:7px;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:6px;padding:7px 10px}
+.ch-item input{flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:var(--mono);font-size:12px;padding:0}
+.ch-item input:focus{box-shadow:none;border:none}
+.ch-rm{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;
+  line-height:1;padding:2px;flex-shrink:0;transition:color .15s}
+.ch-rm:hover{color:var(--red)}
 
-/* ── Channels List ───────────────────────────────────────────────────────────*/
-.channel-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.channel-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 8px 10px;
-}
-.channel-item input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 12px;
-  box-shadow: none;
-  padding: 0;
-  width: auto;
-}
-.channel-item input:focus { box-shadow: none; border: none; }
-.channel-remove {
-  background: none;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 2px;
-  flex-shrink: 0;
-  transition: color .15s;
-}
-.channel-remove:hover { color: var(--red); }
+/* Ticker tags */
+.t-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.t-tag{display:flex;align-items:center;gap:4px;background:var(--bg4);
+  border:1px solid var(--border2);border-radius:4px;padding:4px 8px;
+  font-family:var(--mono);font-size:11px;color:var(--amber)}
+.t-tag button{background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:13px;line-height:1;padding:0;margin-left:2px;transition:color .15s}
+.t-tag button:hover{color:var(--red)}
+.t-add{display:flex;gap:7px}
+.t-add input{font-family:var(--mono);font-size:12px;text-transform:uppercase;width:110px}
 
-/* ── Ticker Tags ─────────────────────────────────────────────────────────────*/
-.ticker-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.ticker-tag {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg4);
-  border: 1px solid var(--border2);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--amber);
-}
-.ticker-tag button {
-  background: none;
-  border: none;
-  color: var(--text3);
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  padding: 0;
-  margin-left: 2px;
-  transition: color .15s;
-}
-.ticker-tag button:hover { color: var(--red); }
-.add-ticker-row {
-  display: flex;
-  gap: 8px;
-}
-.add-ticker-row input {
-  font-family: var(--mono);
-  font-size: 12px;
-  text-transform: uppercase;
-  width: 120px;
-}
+/* Run panel */
+.run-panel{background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(16,185,129,.05));
+  border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:22px;margin-bottom:18px}
+.run-title{font-weight:700;font-size:15px;color:var(--amber);margin-bottom:5px}
+.run-desc{font-size:12px;color:var(--text2);margin-bottom:15px}
+.run-btns{display:flex;gap:9px;flex-wrap:wrap}
 
-/* ── Run Panel ───────────────────────────────────────────────────────────────*/
-.run-panel {
-  background: linear-gradient(135deg, rgba(245,158,11,.08), rgba(16,185,129,.05));
-  border: 1px solid rgba(245,158,11,.25);
-  border-radius: 10px;
-  padding: 24px;
-  margin-bottom: 20px;
-}
-.run-title {
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--amber);
-  margin-bottom: 6px;
-}
-.run-desc { font-size: 12px; color: var(--text2); margin-bottom: 18px; }
-.run-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Cron */
+.cron-box{display:flex;align-items:center;gap:10px;background:var(--bg3);
+  border:1px solid var(--border2);border-radius:6px;padding:9px 13px;margin-top:7px}
+.cron-val{font-family:var(--mono);font-size:13px;color:var(--amber);flex:1}
+.cron-desc{font-size:12px;color:var(--text2)}
 
-/* ── Toast ───────────────────────────────────────────────────────────────────*/
-.toast-container {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 9999;
-}
-.toast {
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 280px;
-  max-width: 400px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-  animation: slideIn .2s ease;
-}
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-.toast.success { border-left: 3px solid var(--green); }
-.toast.error   { border-left: 3px solid var(--red); }
-.toast.info    { border-left: 3px solid var(--blue); }
+/* Job card */
+.job-card{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:13px;margin-bottom:9px}
+.job-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.job-meta{font-size:12px;color:var(--text2);margin-bottom:5px}
+.job-cmd{font-size:11px;color:var(--text3);font-family:var(--mono);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── Section divider ─────────────────────────────────────────────────────────*/
-.section-title {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--text3);
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
-}
+/* Toast */
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:7px;z-index:9999}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:11px 15px;font-size:13px;display:flex;align-items:center;gap:9px;
+  min-width:260px;max-width:380px;box-shadow:0 8px 24px rgba(0,0,0,.4);animation:tin .2s ease}
+@keyframes tin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast.ok  {border-left:3px solid var(--green)}
+.toast.err {border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--blue)}
 
-/* ── Cron display ────────────────────────────────────────────────────────────*/
-.cron-display {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin-top: 8px;
-}
-.cron-val {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--amber);
-  flex: 1;
-}
-.cron-desc { font-size: 12px; color: var(--text2); }
+/* Loading */
+.loading{display:none;position:fixed;inset:0;background:rgba(8,12,16,.7);
+  z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading.on{display:flex}
+.spinner{width:34px;height:34px;border:3px solid var(--border2);
+  border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-family:var(--mono);font-size:12px;color:var(--text2)}
 
-/* ── Loading overlay ─────────────────────────────────────────────────────────*/
-.loading-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(8,12,16,.7);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 16px;
-}
-.loading-overlay.show { display: flex; }
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--border2);
-  border-top-color: var(--amber);
-  border-radius: 50%;
-  animation: spin .7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+/* Savebar */
+.savebar{position:sticky;bottom:0;background:var(--bg2);border-top:1px solid var(--border);
+  padding:12px 28px;display:flex;align-items:center;justify-content:space-between;z-index:50}
+.save-status{font-size:12px;color:var(--text3)}
 
-/* ── Rows / grid helpers ─────────────────────────────────────────────────────*/
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.row-flex { display: flex; align-items: flex-end; gap: 10px; }
-@media (max-width: 540px) { .grid2 { grid-template-columns: 1fr; } }
+/* Connect panel */
+.connect-wrap{max-width:500px;margin:50px auto}
+.connect-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:30px}
+.connect-title{font-family:var(--mono);font-size:17px;color:var(--amber);margin-bottom:7px}
+.connect-sub{color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.7}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- ── Loading overlay ────────────────────────────────────────────────────── -->
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">載入中…</div>
-</div>
+<div class="loading" id="ld"><div class="spinner"></div><div class="loading-msg" id="ldmsg">載入中…</div></div>
+<div class="toast-wrap" id="tw"></div>
 
-<!-- ── Toast container ────────────────────────────────────────────────────── -->
-<div class="toast-container" id="toastContainer"></div>
-
-<!-- ── Top Bar ────────────────────────────────────────────────────────────── -->
+<!-- Topbar -->
 <div class="topbar">
-  <div class="topbar-logo">
+  <div class="logo">
     <div class="logo-icon">📊</div>
-    <div>
-      <div class="logo-text">INVEST REPORT</div>
-      <div class="logo-sub">投資日報控制台</div>
-    </div>
+    <div><div class="logo-text">INVEST REPORT</div><div class="logo-sub">投資日報控制台</div></div>
   </div>
-  <div class="topbar-actions">
-    <span class="status-dot" id="statusDot"></span>
-    <span class="repo-label" id="repoLabel">未連線</span>
-    <button class="btn btn-ghost btn-sm" onclick="showSettings()">⚙ 連線設定</button>
+  <div class="topbar-right">
+    <span class="status-dot" id="sdot"></span>
+    <span class="repo-label" id="srepo">未連線</span>
+    <button class="btn btn-ghost btn-sm" id="btnConnSetting">⚙ 連線設定</button>
   </div>
 </div>
 
-<!-- ── Main ──────────────────────────────────────────────────────────────── -->
+<!-- Main -->
 <div class="main">
-
   <!-- Sidebar -->
   <div class="sidebar">
-    <div class="sidebar-section-label">操作</div>
-    <div class="nav-item active" onclick="navigate('run')" id="nav-run">
-      <span class="nav-icon">🚀</span> 立即執行
-    </div>
-    <div class="sidebar-section-label">設定</div>
-    <div class="nav-item" onclick="navigate('command')" id="nav-command">
-      <span class="nav-icon">📋</span> 分析指令
-    </div>
-    <div class="nav-item" onclick="navigate('youtube')" id="nav-youtube">
-      <span class="nav-icon">▶️</span> YouTube 設定
-    </div>
-    <div class="nav-item" onclick="navigate('channels')" id="nav-channels">
-      <span class="nav-icon">📺</span> 固定頻道
-    </div>
-    <div class="nav-item" onclick="navigate('prices')" id="nav-prices">
-      <span class="nav-icon">💹</span> 投資報價
-    </div>
-    <div class="nav-item" onclick="navigate('schedule')" id="nav-schedule">
-      <span class="nav-icon">🕐</span> 排程設定
-    </div>
-    <div class="nav-item" onclick="navigate('jobs')" id="nav-jobs">
-      <span class="nav-icon">📋</span> 任務管理
-    </div>
-    <div class="sidebar-section-label">工具</div>
-    <div class="nav-item" onclick="navigate('connection')" id="nav-connection">
-      <span class="nav-icon">🔗</span> GitHub 連線
-    </div>
+    <div class="nav-section">操作</div>
+    <div class="nav-item" id="ni-run"><span>🚀</span> 立即執行</div>
+    <div class="nav-section">設定</div>
+    <div class="nav-item" id="ni-command"><span>📋</span> 分析指令</div>
+    <div class="nav-item" id="ni-youtube"><span>▶️</span> YouTube 設定</div>
+    <div class="nav-item" id="ni-channels"><span>📺</span> 固定頻道</div>
+    <div class="nav-item" id="ni-prices"><span>💹</span> 投資報價</div>
+    <div class="nav-item" id="ni-schedule"><span>🕐</span> 排程設定</div>
+    <div class="nav-item" id="ni-jobs"><span>📋</span> 任務管理</div>
+    <div class="nav-section">工具</div>
+    <div class="nav-item" id="ni-conn"><span>🔗</span> GitHub 連線</div>
   </div>
 
   <!-- Content -->
-  <div class="content" id="mainContent">
+  <div class="content">
 
-    <!-- ── Connection (initial setup) ─────────────────────────────────────── -->
-    <div id="section-connection-init" style="display:none">
-      <div class="connect-panel">
+    <!-- Connect init -->
+    <div id="sec-connect-init" class="connect-wrap" style="display:none">
+      <div class="connect-box">
         <div class="connect-title">🔗 連接 GitHub</div>
-        <div class="connect-sub">
-          輸入你的 GitHub 資訊，控制台就可以直接讀取和修改 <code style="color:var(--amber)">config.yaml</code>，並觸發 Actions。
+        <div class="connect-sub">輸入你的 GitHub 資訊，控制台可直接讀取與修改 config.yaml 並觸發 Actions。</div>
+        <div class="fg">
+          <label class="lbl">GitHub Personal Access Token</label>
+          <input type="password" id="init-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+          <div class="hint"><a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" style="color:var(--amber)">點此建立 Token（需 repo + workflow 權限）→</a></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">GitHub Personal Access Token</label>
-          <input type="password" id="initPat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-          <div class="form-hint">需要 repo 與 workflow 權限。<a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" style="color:var(--amber)">點此建立 Token →</a></div>
+        <div class="fg">
+          <label class="lbl">倉庫（owner/repo）</label>
+          <input type="text" id="init-repo" placeholder="Samuelhuang-com/notebooklm-daily-report">
         </div>
-        <div class="form-group">
-          <label class="form-label">倉庫（owner/repo）</label>
-          <input type="text" id="initRepo" placeholder="Samuelhuang-com/notebooklm-daily-report">
+        <div class="fg">
+          <label class="lbl">Workflow 檔名</label>
+          <input type="text" id="init-wf" value="daily_analysis.yml">
         </div>
-        <div class="form-group">
-          <label class="form-label">Workflow 檔名</label>
-          <input type="text" id="initWorkflow" value="daily_analysis.yml">
-        </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" onclick="saveConnection()">
-          連接 GitHub →
-        </button>
+        <button class="btn btn-primary" id="btnInitConnect" style="width:100%;justify-content:center;margin-top:10px">連接 GitHub →</button>
       </div>
     </div>
 
-    <!-- ── Run section ─────────────────────────────────────────────────────── -->
-    <div id="section-run" style="display:none">
-      <div class="section-title">立即執行</div>
-
+    <!-- Run -->
+    <div id="sec-run" style="display:none">
+      <div class="sec-title">立即執行</div>
       <div class="run-panel">
         <div class="run-title">🚀 手動觸發分析</div>
-        <div class="run-desc">點擊後 GitHub Actions 會立即開始執行，約 10–20 分鐘後你將收到 Email 和 LINE 通知。</div>
-        <div class="run-actions">
-          <button class="btn btn-success" onclick="triggerWorkflow()">▶ 立即執行分析</button>
-          <button class="btn btn-ghost" onclick="openActionsPage()">📋 查看執行紀錄</button>
+        <div class="run-desc">點擊後 GitHub Actions 立即開始執行，約 10–20 分鐘後收到報告。</div>
+        <div class="run-btns">
+          <button class="btn btn-success" id="btnRunAll">▶ 立即執行分析</button>
+          <button class="btn btn-ghost" id="btnOpenActions">📋 查看執行紀錄</button>
         </div>
       </div>
-
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">⚡ 自訂這次的分析指令</div>
-          <div class="card-badge">選填</div>
-        </div>
+        <div class="card-header"><div class="card-title">⚡ 臨時覆蓋指令</div><span style="font-size:11px;color:var(--text3)">選填</span></div>
         <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">OVERRIDE 分析指令（留空則使用 config.yaml 設定）</label>
-            <textarea id="runCommand" rows="4" placeholder="留空使用預設設定，或輸入臨時指令覆蓋此次執行&#10;例：美股 NVIDIA 半導體｜分析今天 NVDA 相關討論"></textarea>
+          <div class="fg">
+            <label class="lbl">這次執行的指令（留空=使用 config.yaml 設定）</label>
+            <textarea id="run-cmd" rows="4" placeholder="留空使用預設。&#10;或輸入臨時指令，例：美股 NVIDIA 半導體｜分析今天 NVDA 相關討論"></textarea>
           </div>
-          <button class="btn btn-primary" onclick="triggerWorkflow()">▶ 用以上指令執行</button>
+          <button class="btn btn-primary" id="btnRunCmd">▶ 用以上指令執行</button>
         </div>
       </div>
     </div>
 
-    <!-- ── Command section ─────────────────────────────────────────────────── -->
-    <div id="section-command" style="display:none">
-      <div class="section-title">分析指令</div>
+    <!-- Command -->
+    <div id="sec-command" style="display:none">
+      <div class="sec-title">分析指令</div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">📋 每日分析指令</div>
-        </div>
+        <div class="card-header"><div class="card-title">📋 每日分析指令</div></div>
         <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">ANALYSIS_COMMAND</label>
-            <textarea id="cfgCommand" rows="10"
-              placeholder="台股 美股 ETF 投資 財經｜&#10;請整理今天最熱門的投資影片…"></textarea>
-            <div class="form-hint">「｜」前面是 YouTube 搜尋關鍵字，後面是 NotebookLM 分析要求</div>
+          <div class="fg">
+            <label class="lbl">ANALYSIS_COMMAND</label>
+            <textarea id="cfg-cmd" rows="10"></textarea>
+            <div class="hint">「｜」前面是 YouTube 搜尋關鍵字，後面是 NotebookLM 分析要求</div>
           </div>
-
-          <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-top:16px">
-            <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:10px">預設範例（點擊套用）</div>
-            <div style="display:flex;flex-direction:column;gap:6px" id="exampleList"></div>
+          <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:13px;margin-top:14px">
+            <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:9px">範例快選：</div>
+            <div style="display:flex;flex-direction:column;gap:6px" id="example-list"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── YouTube settings ─────────────────────────────────────────────────── -->
-    <div id="section-youtube" style="display:none">
-      <div class="section-title">YouTube 搜尋設定</div>
+    <!-- YouTube -->
+    <div id="sec-youtube" style="display:none">
+      <div class="sec-title">YouTube 搜尋設定</div>
       <div class="card">
         <div class="card-body">
-          <div class="grid2">
-            <div class="form-group">
-              <label class="form-label">TOP_N（最多取幾支影片）</label>
-              <input type="number" id="cfgTopN" min="5" max="50" value="10">
+          <div class="g2">
+            <div class="fg">
+              <label class="lbl">TOP_N（最多取幾支）</label>
+              <input type="number" id="cfg-topn" min="5" max="50" value="10">
             </div>
-            <div class="form-group">
-              <label class="form-label">SEARCH_HOURS_BACK（往前搜尋幾小時）</label>
-              <input type="number" id="cfgHoursBack" min="1" max="72" value="21">
-              <div class="form-hint">21 = 前一天 12:00 到今天 09:00</div>
+            <div class="fg">
+              <label class="lbl">SEARCH_HOURS_BACK（往前幾小時）</label>
+              <input type="number" id="cfg-hback" min="1" max="120" value="21">
+              <div class="hint">21 = 前一天 12:00 到今天 09:00</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">REGION_CODE</label>
-              <select id="cfgRegion">
+            <div class="fg">
+              <label class="lbl">REGION_CODE</label>
+              <select id="cfg-region">
                 <option value="TW">TW – 台灣</option>
                 <option value="US">US – 美國</option>
                 <option value="HK">HK – 香港</option>
                 <option value="JP">JP – 日本</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">LANGUAGE</label>
-              <select id="cfgLang">
+            <div class="fg">
+              <label class="lbl">LANGUAGE</label>
+              <select id="cfg-lang">
                 <option value="zh-Hant">zh-Hant – 繁體中文</option>
                 <option value="zh-Hans">zh-Hans – 簡體中文</option>
                 <option value="en">en – 英文</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">MIN_MINUTES（最短片長，分鐘）</label>
-              <input type="number" id="cfgMinMin" min="0" max="30" value="0">
-              <div class="form-hint">0 = 不限制</div>
+            <div class="fg">
+              <label class="lbl">MIN_MINUTES（最短片長分鐘）</label>
+              <input type="number" id="cfg-minmin" min="0" max="30" value="0">
+              <div class="hint">0 = 不限制</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">CHANNEL_VIDEOS_PER（每頻道最多幾支）</label>
-              <input type="number" id="cfgChPer" min="1" max="10" value="3">
+            <div class="fg">
+              <label class="lbl">CHANNEL_VIDEOS_PER（每頻道最多幾支）</label>
+              <input type="number" id="cfg-chper" min="1" max="10" value="3">
             </div>
           </div>
-          <div class="toggle-row" style="margin-top:8px">
-            <div>
-              <div class="toggle-label">排除 YouTube Shorts（≤60秒）</div>
-              <div class="toggle-sub">建議開啟，避免短片干擾分析</div>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="cfgExcludeShorts" checked>
-              <span class="toggle-slider"></span>
-            </label>
+          <div class="trow" style="margin-top:8px">
+            <div><div class="tlabel">排除 YouTube Shorts（≤60秒）</div><div class="tsub">建議開啟</div></div>
+            <label class="toggle"><input type="checkbox" id="cfg-shorts" checked><span class="tslider"></span></label>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Channels section ──────────────────────────────────────────────────── -->
-    <div id="section-channels" style="display:none">
-      <div class="section-title">固定追蹤頻道</div>
+    <!-- Channels -->
+    <div id="sec-channels" style="display:none">
+      <div class="sec-title">固定追蹤頻道</div>
       <div class="card">
         <div class="card-header">
           <div class="card-title">📺 每天都會抓取的頻道</div>
-          <button class="btn btn-ghost btn-sm" onclick="addChannel()">+ 新增頻道</button>
+          <button class="btn btn-ghost btn-sm" id="btnAddCh">+ 新增頻道</button>
         </div>
         <div class="card-body">
-          <div class="channel-list" id="channelList"></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px">
-            支援完整網址（https://www.youtube.com/@handle）或 @handle 格式
-          </div>
+          <div class="ch-list" id="ch-list"></div>
+          <div class="hint">支援完整網址（https://www.youtube.com/@handle）或 @handle 格式</div>
         </div>
       </div>
     </div>
 
-    <!-- ── Prices section ───────────────────────────────────────────────────── -->
-    <div id="section-prices" style="display:none">
-      <div class="section-title">投資報價設定</div>
+    <!-- Prices -->
+    <div id="sec-prices" style="display:none">
+      <div class="sec-title">投資報價設定</div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">💹 固定查詢的投資代號</div>
-        </div>
+        <div class="card-header"><div class="card-title">💹 固定查詢的投資代號</div></div>
         <div class="card-body">
-          <div class="ticker-grid" id="tickerGrid"></div>
-          <div class="add-ticker-row">
-            <input type="text" id="newTickerInput" placeholder="輸入代號" maxlength="10"
-              onkeydown="if(event.key==='Enter')addTicker()">
-            <button class="btn btn-ghost btn-sm" onclick="addTicker()">+ 新增</button>
+          <div class="t-grid" id="t-grid"></div>
+          <div class="t-add">
+            <input type="text" id="t-input" placeholder="輸入代號" maxlength="10">
+            <button class="btn btn-ghost btn-sm" id="btnAddTicker">+ 新增</button>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.8">
+          <div class="hint" style="margin-top:10px;line-height:1.9">
             台股：4-6位數字（2330, 0050, 00878）<br>
             美股：英文代號（AAPL, NVDA, TSLA）<br>
             指數：^TWII, ^GSPC, ^IXIC, ^SOX<br>
-            商品：GC=F（黃金）, CL=F（原油）, SI=F（白銀）
+            商品：GC=F（黃金）, CL=F（原油）
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Schedule section ─────────────────────────────────────────────────── -->
-    <div id="section-schedule" style="display:none">
-      <div class="section-title">排程設定</div>
+    <!-- Schedule -->
+    <div id="sec-schedule" style="display:none">
+      <div class="sec-title">排程設定</div>
       <div class="card">
         <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">CRON 表達式（UTC 時間）</label>
-            <input type="text" id="cfgCron" value="0 1 * * 1-5">
-            <div class="form-hint">注意：GitHub Actions 使用 UTC，台北時間 = UTC + 8</div>
+          <div class="fg">
+            <label class="lbl">CRON 表達式（UTC 時間）</label>
+            <input type="text" id="cfg-cron" value="0 1 * * 1-5">
+            <div class="hint">台北時間 = UTC + 8 小時</div>
           </div>
-          <div class="cron-display">
-            <div class="cron-val" id="cronDisplay">0 1 * * 1-5</div>
-            <div class="cron-desc" id="cronDesc">台北時間 週一到週五 09:00</div>
+          <div class="cron-box">
+            <div class="cron-val" id="cron-val">0 1 * * 1-5</div>
+            <div class="cron-desc" id="cron-desc">台北時間 週一到週五 09:00</div>
           </div>
-
-          <div style="margin-top:20px">
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px">常用時間快選：</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px" id="cronPresets"></div>
+          <div style="margin-top:18px">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:9px">快選：</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px" id="cron-presets"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Jobs management ─────────────────────────────────────────────────── -->
-    <div id="section-jobs" style="display:none">
-      <div class="section-title">任務管理</div>
-
+    <!-- Jobs -->
+    <div id="sec-jobs" style="display:none">
+      <div class="sec-title">任務管理</div>
       <div class="card">
         <div class="card-header">
-          <div class="card-title">📋 所有任務（從 config.yaml 讀取）</div>
-          <button class="btn btn-ghost btn-sm" onclick="loadConfig()">↻ 重新整理</button>
+          <div class="card-title">📋 所有任務</div>
+          <button class="btn btn-ghost btn-sm" id="btnReloadJobs">↻ 重新整理</button>
         </div>
-        <div class="card-body" id="jobsListBody">
+        <div class="card-body" id="jobs-body">
           <div style="color:var(--text3);font-size:13px">請先載入 config.yaml</div>
         </div>
       </div>
-
       <div class="card">
-        <div class="card-header">
-          <div class="card-title">⏰ 排程說明（UTC → 台北時間）</div>
-        </div>
-        <div class="card-body">
-          <div style="font-size:12px;color:var(--text2);line-height:2">
-            每 <strong>30 分鐘</strong>，GitHub Actions 啟動一次，Python 自動判斷哪個任務需要執行<br>
-            <code style="color:var(--amber)">schedule: "0 1 * * 1-5"</code> = 台北時間週一到週五 09:00<br>
-            <code style="color:var(--amber)">schedule: "0 13 * * 1-5"</code> = 台北時間週一到週五 21:00<br>
-            <code style="color:var(--amber)">enabled: false</code> = 停用（不會自動執行）<br><br>
-            若要新增任務：到 <strong>config.yaml</strong> 複製一個 job 區塊，修改 id / schedule / command 即可
-          </div>
+        <div class="card-header"><div class="card-title">⏰ 多任務說明</div></div>
+        <div class="card-body" style="font-size:12px;color:var(--text2);line-height:2">
+          GitHub Actions 每 <strong style="color:var(--amber)">30 分鐘</strong> 啟動一次，Python 自動判斷哪個任務到時間<br>
+          <code style="color:var(--amber)">"0 1 * * 1-5"</code> = 台北時間 週一到週五 09:00<br>
+          <code style="color:var(--amber)">"0 13 * * 1-5"</code> = 台北時間 週一到週五 21:00<br>
+          <code style="color:var(--amber)">enabled: false</code> = 停用（不會自動執行）<br>
+          新增任務：直接在 config.yaml 複製一個 job 區塊並修改 id / schedule
         </div>
       </div>
     </div>
 
-    <!-- ── Connection settings ──────────────────────────────────────────────── -->
-    <div id="section-connection" style="display:none">
-      <div class="section-title">GitHub 連線設定</div>
+    <!-- Connection -->
+    <div id="sec-conn" style="display:none">
+      <div class="sec-title">GitHub 連線設定</div>
       <div class="card">
         <div class="card-body">
-          <div class="form-group">
-            <label class="form-label">GitHub Personal Access Token</label>
-            <input type="password" id="settingsPat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-            <div class="form-hint"><a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" style="color:var(--amber)">建立 Token（需要 repo + workflow 權限）→</a></div>
+          <div class="fg">
+            <label class="lbl">GitHub Personal Access Token</label>
+            <input type="password" id="s-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <div class="hint"><a href="https://github.com/settings/tokens/new?scopes=repo,workflow" target="_blank" style="color:var(--amber)">建立 Token →</a></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">倉庫（owner/repo）</label>
-            <input type="text" id="settingsRepo" placeholder="Samuelhuang-com/notebooklm-daily-report">
+          <div class="fg">
+            <label class="lbl">倉庫（owner/repo）</label>
+            <input type="text" id="s-repo" placeholder="Samuelhuang-com/notebooklm-daily-report">
           </div>
-          <div class="form-group">
-            <label class="form-label">Workflow 檔名</label>
-            <input type="text" id="settingsWorkflow" value="daily_analysis.yml">
+          <div class="fg">
+            <label class="lbl">Workflow 檔名</label>
+            <input type="text" id="s-wf" value="daily_analysis.yml">
           </div>
-          <div style="display:flex;gap:10px;margin-top:8px">
-            <button class="btn btn-primary" onclick="saveConnection()">儲存連線設定</button>
-            <button class="btn btn-ghost" onclick="testConnection()">測試連線</button>
-            <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="clearConnection()">清除</button>
+          <div style="display:flex;gap:9px;margin-top:10px">
+            <button class="btn btn-primary" id="btnSaveConn">儲存連線</button>
+            <button class="btn btn-ghost" id="btnTestConn">測試連線</button>
+            <button class="btn btn-danger btn-sm" id="btnClearConn">清除</button>
           </div>
         </div>
       </div>
@@ -853,679 +449,797 @@ input[type=number] { font-family: var(--mono); width: 100px; }
   </div><!-- /.content -->
 </div><!-- /.main -->
 
-<!-- ── Sticky Save Bar ─────────────────────────────────────────────────────── -->
-<div style="
-  position:sticky;bottom:0;
-  background:var(--bg2);border-top:1px solid var(--border);
-  padding:14px 32px;
-  display:flex;align-items:center;justify-content:space-between;
-  z-index:50;
-" id="saveBar">
-  <div style="font-size:12px;color:var(--text3)" id="saveStatus">從 GitHub 載入設定以開始編輯</div>
-  <div style="display:flex;gap:10px">
-    <button class="btn btn-ghost" onclick="loadConfig()" id="btnReload" disabled>↻ 重新載入</button>
-    <button class="btn btn-primary" onclick="saveConfig()" id="btnSave" disabled>💾 儲存到 GitHub</button>
+<!-- Savebar -->
+<div class="savebar">
+  <div class="save-status" id="save-status">從 GitHub 載入設定以開始編輯</div>
+  <div style="display:flex;gap:9px">
+    <button class="btn btn-ghost" id="btnReload" disabled>↻ 重新載入</button>
+    <button class="btn btn-primary" id="btnSave" disabled>💾 儲存到 GitHub</button>
   </div>
 </div>
 
 </div><!-- /.app -->
 
 <script>
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
 // State
-// ══════════════════════════════════════════════════════════════════════════════
-let S = {
-  pat:       '',
-  repo:      '',
-  workflow:  'daily_analysis.yml',
-  sha:       '',      // current config.yaml sha (needed for update)
-  cfg:       null,    // parsed yaml object
-  dirty:     false,
-  connected: false,
-};
+// ══════════════════════════════════════════════════════════════════════
+var S = { pat:'', repo:'', wf:'daily_analysis.yml', sha:'', connected:false, dirty:false };
 
-const CRON_PRESETS = [
-  { label: '週一到五 07:00', cron: '0 23 * * 0-4', desc: '台北時間 週一到週五 07:00' },
-  { label: '週一到五 08:00', cron: '0 0 * * 1-5',  desc: '台北時間 週一到週五 08:00' },
-  { label: '週一到五 09:00', cron: '0 1 * * 1-5',  desc: '台北時間 週一到週五 09:00' },
-  { label: '每天 09:00',     cron: '0 1 * * *',    desc: '台北時間 每天 09:00' },
-  { label: '每天 18:00',     cron: '0 10 * * *',   desc: '台北時間 每天 18:00' },
+var CRON_PRESETS = [
+  { label:'週一到五 07:00', cron:'0 23 * * 0-4', desc:'台北時間 週一到週五 07:00' },
+  { label:'週一到五 08:00', cron:'0 0 * * 1-5',  desc:'台北時間 週一到週五 08:00' },
+  { label:'週一到五 09:00', cron:'0 1 * * 1-5',  desc:'台北時間 週一到週五 09:00' },
+  { label:'每天 09:00',     cron:'0 1 * * *',    desc:'台北時間 每天 09:00' },
+  { label:'每天 18:00',     cron:'0 10 * * *',   desc:'台北時間 每天 18:00' },
+  { label:'週五 18:00',     cron:'0 10 * * 5',   desc:'台北時間 每週五 18:00' }
 ];
 
-const EXAMPLES = [
-  { label: '📈 台股熱門',
-    cmd: '台股 美股 ETF 投資 財經｜請整理今天最熱門的投資影片，重點萃取：提到的股票代號、ETF代號、目標價、支撐壓力位、博主觀點共識分歧、每支影片核心論點1-2句。輸出：先5-8點摘要，再影片表格，最後股票/ETF彙整表' },
-  { label: '🤖 AI 科技股',
-    cmd: 'AI 科技股 半導體 輝達 台積電｜分析本週討論AI科技股的熱門影片：哪些股票被多個影片同時提到、具體提到的股價目標和買賣區間、看多vs看空論點依據' },
-  { label: '💰 高股息 ETF',
-    cmd: '台股 ETF 0056 00878 高股息 存股｜整理本週關於高股息ETF的熱門討論：各ETF評價比較、除權息策略建議、博主對定期定額vs擇時進場的看法、今年殖利率預估' },
-  { label: '🌍 全球總經',
-    cmd: '美股 Fed 利率 通膨 黃金 地緣政治｜分析本週總體經濟與美股熱門影片：Fed政策方向市場解讀、看好看空板塊、避險資產觀點、對台股外溢影響評估' },
+var EXAMPLES = [
+  { label:'📈 台股熱門（推薦）',
+    cmd:'台股 美股 ETF 投資 財經｜\n請整理今天最熱門的投資影片，重點萃取：\n1. 提到的股票代號、ETF代號、目標價、支撐壓力位\n2. 博主觀點與市場共識分歧\n3. 每支影片的核心論點（1-2句）\n4. 播放量特別高的原因（標題策略、發布時機、獨家資訊）\n輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表' },
+  { label:'🤖 AI 科技股',
+    cmd:'AI 科技股 半導體 輝達 台積電｜\n分析本週討論AI科技股的熱門影片：\n1. 哪些股票被多個影片同時提到\n2. 具體提到的股價目標和買賣區間\n3. 看多 vs 看空論點依據' },
+  { label:'💰 高股息 ETF',
+    cmd:'台股 ETF 0056 00878 高股息 存股｜\n整理本週關於高股息ETF的熱門討論：\n1. 各ETF評價比較\n2. 除權息策略建議\n3. 博主對定期定額vs擇時進場的看法' },
+  { label:'🌍 全球總經',
+    cmd:'美股 Fed 利率 通膨 黃金 地緣政治｜\n分析本週總體經濟與美股熱門影片：\n1. Fed政策方向的市場解讀\n2. 哪些板塊被看好/看空\n3. 對台股的外溢影響' }
 ];
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
 // Init
-// ══════════════════════════════════════════════════════════════════════════════
-window.onload = () => {
-  loadStoredConnection();
+// ══════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  // Navigation
+  var navMap = {
+    'ni-run':     'run',
+    'ni-command': 'command',
+    'ni-youtube': 'youtube',
+    'ni-channels':'channels',
+    'ni-prices':  'prices',
+    'ni-schedule':'schedule',
+    'ni-jobs':    'jobs',
+    'ni-conn':    'conn'
+  };
+  Object.keys(navMap).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', function() { navigate(navMap[id]); });
+  });
+
+  // Button bindings
+  bind('btnConnSetting', function() { navigate('conn'); });
+  bind('btnInitConnect', saveConnection);
+  bind('btnSaveConn',    saveConnection);
+  bind('btnTestConn',    testConnection);
+  bind('btnClearConn',   clearConnection);
+  bind('btnRunAll',      function() { triggerWorkflow(''); });
+  bind('btnRunCmd',      function() { triggerWorkflow(val('run-cmd')); });
+  bind('btnOpenActions', openActions);
+  bind('btnAddCh',       addChannel);
+  bind('btnAddTicker',   addTicker);
+  bind('btnSave',        saveConfig);
+  bind('btnReload',      loadConfig);
+  bind('btnReloadJobs',  loadConfig);
+
+  // Ticker enter key
+  var ti = document.getElementById('t-input');
+  if (ti) ti.addEventListener('keydown', function(e) { if (e.key === 'Enter') addTicker(); });
+
+  // Cron input
+  var ci = document.getElementById('cfg-cron');
+  if (ci) ci.addEventListener('input', updateCronDisplay);
+
+  // Dirty tracking
+  ['cfg-cmd','cfg-topn','cfg-hback','cfg-minmin','cfg-chper','cfg-cron'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', markDirty);
+  });
+  var shortsEl = document.getElementById('cfg-shorts');
+  if (shortsEl) shortsEl.addEventListener('change', markDirty);
+  var regionEl = document.getElementById('cfg-region');
+  if (regionEl) regionEl.addEventListener('change', markDirty);
+  var langEl = document.getElementById('cfg-lang');
+  if (langEl) langEl.addEventListener('change', markDirty);
+
+  // Build static UI elements
   buildExamples();
   buildCronPresets();
+
+  // Load stored connection
+  S.pat  = localStorage.getItem('gh_pat')  || '';
+  S.repo = localStorage.getItem('gh_repo') || '';
+  S.wf   = localStorage.getItem('gh_wf')   || 'daily_analysis.yml';
+  S.connected = !!(S.pat && S.repo);
+  updateConnUI();
+
   if (S.connected) {
     navigate('run');
     loadConfig();
   } else {
-    showInitPanel();
+    navigate('connect-init');
   }
-};
+});
 
-function loadStoredConnection() {
-  S.pat      = localStorage.getItem('gh_pat')      || '';
-  S.repo     = localStorage.getItem('gh_repo')     || '';
-  S.workflow = localStorage.getItem('gh_workflow') || 'daily_analysis.yml';
-  S.connected = !!(S.pat && S.repo);
-  updateConnectionUI();
+function bind(id, fn) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('click', fn);
 }
 
-function updateConnectionUI() {
-  const dot   = document.getElementById('statusDot');
-  const label = document.getElementById('repoLabel');
-  dot.className = 'status-dot ' + (S.connected ? 'connected' : '');
-  label.textContent = S.connected ? S.repo : '未連線';
-  document.getElementById('btnSave').disabled   = !S.connected;
-  document.getElementById('btnReload').disabled = !S.connected;
-  // Fill settings fields
-  if (document.getElementById('settingsPat')) {
-    document.getElementById('settingsPat').value      = S.pat;
-    document.getElementById('settingsRepo').value     = S.repo;
-    document.getElementById('settingsWorkflow').value = S.workflow;
-    document.getElementById('initPat').value      = S.pat;
-    document.getElementById('initRepo').value     = S.repo;
-    document.getElementById('initWorkflow').value = S.workflow;
-  }
+function val(id) {
+  var el = document.getElementById(id);
+  return el ? el.value : '';
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+function setVal(id, v) {
+  var el = document.getElementById(id);
+  if (el) el.value = v;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // Navigation
-// ══════════════════════════════════════════════════════════════════════════════
-let currentSection = 'run';
+// ══════════════════════════════════════════════════════════════════════
 function navigate(sec) {
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('[id^="section-"]').forEach(el => el.style.display = 'none');
-  const navEl = document.getElementById('nav-' + sec);
-  if (navEl) navEl.classList.add('active');
-  const secEl = document.getElementById('section-' + sec);
-  if (secEl) secEl.style.display = 'block';
-  currentSection = sec;
-}
-function showInitPanel() {
-  navigate('connection-init');
-}
-function showSettings() {
-  navigate('connection');
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// GitHub API helpers
-// ══════════════════════════════════════════════════════════════════════════════
-async function ghFetch(path, opts = {}) {
-  const url = `https://api.github.com/repos/${S.repo}/${path}`;
-  const res = await fetch(url, {
-    ...opts,
-    headers: {
-      'Authorization': `Bearer ${S.pat}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(opts.headers || {}),
-    },
+  // Hide all sections
+  document.querySelectorAll('[id^="sec-"]').forEach(function(el) {
+    el.style.display = 'none';
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `HTTP ${res.status}`);
-  }
-  return res.json();
+  // Deactivate nav items
+  document.querySelectorAll('.nav-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  // Show target section
+  var target = document.getElementById('sec-' + sec);
+  if (target) target.style.display = 'block';
+  // Activate nav item (map connect-init → no nav item)
+  var navId = 'ni-' + sec;
+  var navEl = document.getElementById(navId);
+  if (navEl) navEl.classList.add('active');
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
 // Connection
-// ══════════════════════════════════════════════════════════════════════════════
-async function saveConnection() {
-  const pat  = (document.getElementById('initPat')?.value || document.getElementById('settingsPat')?.value || '').trim();
-  const repo = (document.getElementById('initRepo')?.value || document.getElementById('settingsRepo')?.value || '').trim();
-  const wf   = (document.getElementById('initWorkflow')?.value || document.getElementById('settingsWorkflow')?.value || 'daily_analysis.yml').trim();
-  if (!pat || !repo) { toast('請填入 PAT 和倉庫名稱', 'error'); return; }
-  S.pat = pat; S.repo = repo; S.workflow = wf; S.connected = true;
-  localStorage.setItem('gh_pat', pat);
+// ══════════════════════════════════════════════════════════════════════
+function updateConnUI() {
+  var dot   = document.getElementById('sdot');
+  var label = document.getElementById('srepo');
+  if (dot)   dot.className = 'status-dot' + (S.connected ? ' ok' : '');
+  if (label) label.textContent = S.connected ? S.repo : '未連線';
+
+  var btnSave   = document.getElementById('btnSave');
+  var btnReload = document.getElementById('btnReload');
+  if (btnSave)   btnSave.disabled   = !S.connected;
+  if (btnReload) btnReload.disabled = !S.connected;
+
+  // Fill settings fields
+  setVal('s-pat',  S.pat);
+  setVal('s-repo', S.repo);
+  setVal('s-wf',   S.wf);
+  setVal('init-pat',  S.pat);
+  setVal('init-repo', S.repo);
+  setVal('init-wf',   S.wf);
+}
+
+function saveConnection() {
+  var pat  = (val('init-pat')  || val('s-pat')).trim();
+  var repo = (val('init-repo') || val('s-repo')).trim();
+  var wf   = (val('init-wf')   || val('s-wf') || 'daily_analysis.yml').trim();
+
+  if (!pat || !repo) { toast('請填入 PAT 和倉庫名稱', 'err'); return; }
+
+  S.pat = pat; S.repo = repo; S.wf = wf; S.connected = true;
+  localStorage.setItem('gh_pat',  pat);
   localStorage.setItem('gh_repo', repo);
-  localStorage.setItem('gh_workflow', wf);
-  updateConnectionUI();
-  toast('連線設定已儲存', 'success');
+  localStorage.setItem('gh_wf',   wf);
+  updateConnUI();
+  toast('連線設定已儲存', 'ok');
   navigate('run');
-  await loadConfig();
+  loadConfig();
+}
+
+function clearConnection() {
+  localStorage.removeItem('gh_pat');
+  localStorage.removeItem('gh_repo');
+  localStorage.removeItem('gh_wf');
+  S.pat = ''; S.repo = ''; S.connected = false;
+  updateConnUI();
+  navigate('connect-init');
+  toast('已清除連線', 'info');
 }
 
 async function testConnection() {
   showLoading('測試連線…');
   try {
-    const data = await ghFetch('contents/config.yaml');
+    var data = await ghGet('contents/config.yaml');
     S.sha = data.sha;
     hideLoading();
-    toast(`✅ 連線成功！找到 config.yaml（${(data.size / 1024).toFixed(1)} KB）`, 'success');
-  } catch (e) {
+    toast('✅ 連線成功！找到 config.yaml', 'ok');
+  } catch(e) {
     hideLoading();
-    toast(`❌ 連線失敗：${e.message}`, 'error');
+    toast('❌ 連線失敗：' + e.message, 'err');
   }
 }
 
-function clearConnection() {
-  localStorage.removeItem('gh_pat'); localStorage.removeItem('gh_repo'); localStorage.removeItem('gh_workflow');
-  S = { ...S, pat:'', repo:'', workflow:'daily_analysis.yml', sha:'', cfg:null, connected:false };
-  updateConnectionUI();
-  showInitPanel();
-  toast('連線設定已清除', 'info');
+// ══════════════════════════════════════════════════════════════════════
+// GitHub API
+// ══════════════════════════════════════════════════════════════════════
+async function ghGet(path) {
+  var res = await fetch('https://api.github.com/repos/' + S.repo + '/' + path, {
+    headers: {
+      'Authorization': 'Bearer ' + S.pat,
+      'Accept': 'application/vnd.github.v3+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  });
+  if (!res.ok) { var b = await res.json().catch(function(){return{}}); throw new Error(b.message || 'HTTP ' + res.status); }
+  return res.json();
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Load config.yaml from GitHub
-// ══════════════════════════════════════════════════════════════════════════════
+async function ghPut(path, body) {
+  var res = await fetch('https://api.github.com/repos/' + S.repo + '/' + path, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'Bearer ' + S.pat,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { var b = await res.json().catch(function(){return{}}); throw new Error(b.message || 'HTTP ' + res.status); }
+  return res.json();
+}
+
+async function ghPost(path, body) {
+  var res = await fetch('https://api.github.com/repos/' + S.repo + '/' + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + S.pat,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { var b = await res.json().catch(function(){return{}}); throw new Error(b.message || 'HTTP ' + res.status); }
+  return res.status === 204 ? {} : res.json();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Load / Save config.yaml
+// ══════════════════════════════════════════════════════════════════════
 async function loadConfig() {
   if (!S.connected) return;
   showLoading('從 GitHub 載入 config.yaml…');
   try {
-    const data    = await ghFetch('contents/config.yaml');
-    S.sha         = data.sha;
-    const rawYaml = atob(data.content.replace(/\s/g, ''));
-    S.cfg         = parseYaml(rawYaml);
-    populateForm(S.cfg);
-    document.getElementById('saveStatus').textContent = '已從 GitHub 載入 · 上次更新：' + new Date().toLocaleTimeString('zh-TW');
+    var data = await ghGet('contents/config.yaml');
+    S.sha = data.sha;
+    var yamlText = utf8Decode(atob(data.content.replace(/\s/g, '')));
+    var cfg = parseYaml(yamlText);
+    populateForm(cfg);
+    document.getElementById('save-status').textContent = '已載入 · ' + new Date().toLocaleTimeString('zh-TW');
     S.dirty = false;
-    toast('config.yaml 載入完成', 'success');
-  } catch (e) {
-    toast(`載入失敗：${e.message}`, 'error');
-    document.getElementById('saveStatus').textContent = '載入失敗 – ' + e.message;
+    toast('config.yaml 載入完成', 'ok');
+  } catch(e) {
+    toast('載入失敗：' + e.message, 'err');
   }
   hideLoading();
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Save config.yaml to GitHub
-// ══════════════════════════════════════════════════════════════════════════════
 async function saveConfig() {
   if (!S.connected) return;
-  const yaml = buildYaml();
+  var yaml = buildYaml();
   showLoading('儲存到 GitHub…');
   try {
-    const body = {
-      message: `chore: update config.yaml via web console [${new Date().toISOString().slice(0,16)}]`,
-      // Proper UTF-8 safe base64 encoding
-      const bytes = new TextEncoder().encode(yaml);
-      let binary = '';
-      bytes.forEach(b => binary += String.fromCharCode(b));
-      content: btoa(binary),
-      sha: S.sha,
-    };
-    const res = await ghFetch('contents/config.yaml', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+    var bytes = new TextEncoder().encode(yaml);
+    var binary = '';
+    bytes.forEach(function(b) { binary += String.fromCharCode(b); });
+    var b64 = btoa(binary);
+    var res = await ghPut('contents/config.yaml', {
+      message: 'chore: update config.yaml [' + new Date().toISOString().slice(0,16) + ']',
+      content: b64,
+      sha: S.sha
     });
     S.sha = res.content.sha;
     S.dirty = false;
-    document.getElementById('saveStatus').textContent = '✅ 已儲存到 GitHub · ' + new Date().toLocaleTimeString('zh-TW');
-    toast('✅ config.yaml 已更新！', 'success');
-  } catch (e) {
-    toast(`儲存失敗：${e.message}`, 'error');
+    document.getElementById('save-status').textContent = '✅ 已儲存 · ' + new Date().toLocaleTimeString('zh-TW');
+    toast('✅ config.yaml 已更新！', 'ok');
+  } catch(e) {
+    toast('儲存失敗：' + e.message, 'err');
   }
   hideLoading();
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Trigger GitHub Actions
-// ══════════════════════════════════════════════════════════════════════════════
-async function triggerWorkflow() {
-  if (!S.connected) { toast('請先連接 GitHub', 'error'); return; }
-  const overrideCmd = document.getElementById('runCommand')?.value?.trim() || '';
+// ══════════════════════════════════════════════════════════════════════
+// Trigger workflow
+// ══════════════════════════════════════════════════════════════════════
+async function triggerWorkflow(cmdOverride) {
+  if (!S.connected) { toast('請先連接 GitHub', 'err'); return; }
+  var inputs = {};
+  if (cmdOverride) inputs.command_override = cmdOverride;
   showLoading('觸發 GitHub Actions…');
   try {
-    const body = {
+    await ghPost('actions/workflows/' + encodeURIComponent(S.wf) + '/dispatches', {
       ref: 'main',
-      inputs: overrideCmd ? { command: overrideCmd } : {},
-    };
-    await ghFetch(`actions/workflows/${encodeURIComponent(S.workflow)}/dispatches`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      inputs: inputs
     });
     hideLoading();
-    toast('🚀 GitHub Actions 已觸發！約 10-20 分鐘後收到報告', 'success');
-    setTimeout(() => openActionsPage(), 2000);
-  } catch (e) {
+    toast('🚀 GitHub Actions 已觸發！約 10-20 分鐘後收到報告', 'ok');
+    setTimeout(openActions, 2000);
+  } catch(e) {
     hideLoading();
-    toast(`觸發失敗：${e.message}`, 'error');
+    toast('觸發失敗：' + e.message, 'err');
   }
-}
-
-function openActionsPage() {
-  if (!S.repo) return;
-  window.open(`https://github.com/${S.repo}/actions`, '_blank');
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// Form population
-// ══════════════════════════════════════════════════════════════════════════════
-function populateForm(cfg) {
-  const yt  = cfg.youtube || {};
-  const pr  = cfg.prices  || {};
-  const sc  = cfg.schedule || {};
-  // Command
-  setVal('cfgCommand', String(cfg.analysis_command || '').trim());
-  // YouTube
-  setVal('cfgTopN',         yt.top_n         || 10);
-  setVal('cfgHoursBack',    yt.search_hours_back || 21);
-  setVal('cfgRegion',       yt.region_code   || 'TW');
-  setVal('cfgLang',         yt.language      || 'zh-Hant');
-  setVal('cfgMinMin',       yt.min_minutes   || 0);
-  setVal('cfgChPer',        yt.channel_videos_per || 3);
-  document.getElementById('cfgExcludeShorts').checked = yt.exclude_shorts !== false;
-  // Channels
-  renderChannels(yt.fixed_channels || []);
-  // Tickers
-  renderTickers(pr.extra_tickers || []);
-  // Schedule
-  setVal('cfgCron', sc.cron || '0 1 * * 1-5');
-  updateCronDisplay();
-
-  // Jobs list
-  renderJobsList(cfg.jobs || []);
-}
-
-function renderJobsList(jobs) {
-  const el = document.getElementById('jobsListBody');
-  if (!el) return;
-  if (!jobs || !jobs.length) {
-    el.innerHTML = '<div style="color:var(--text3)">沒有任務（使用舊版格式）</div>';
-    return;
-  }
-  el.innerHTML = jobs.map(j => {
-    const enabled = j.enabled !== false;
-    const statusColor = enabled ? 'var(--green)' : 'var(--text3)';
-    const statusText  = enabled ? '✅ 啟用' : '⛔ 停用';
-    const cronTw = describeCron(j.schedule || '');
-    return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
-                padding:14px;margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-weight:700;color:var(--text)">${escHtml(j.name || j.id || '?')}</span>
-          <code style="font-family:var(--mono);font-size:10px;color:var(--amber);
-                background:var(--bg4);padding:2px 6px;border-radius:3px">${escHtml(j.id || '')}</code>
-          <span style="font-size:12px;color:${statusColor}">${statusText}</span>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-success btn-sm" onclick="triggerJob('${escHtml(j.id||'')}')">▶ 立即執行</button>
-          <button class="btn btn-ghost btn-sm" onclick="loadJobToEdit('${escHtml(j.id||'')}')">✏ 編輯</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--text2)">
-        🕐 <strong>${escHtml(cronTw)}</strong>
-        &nbsp;|&nbsp; 時間窗口：${escHtml(String(j.search_hours_back || 21))} 小時
-        &nbsp;|&nbsp; 頻道：${((j.youtube || {}).fixed_channels || []).length} 個
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--mono);
-                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-        ${escHtml((j.analysis_command || '').replace(/\n/g,' ').slice(0,100))}
-      </div>
-    </div>`;
-  }).join('');
 }
 
 async function triggerJob(jobId) {
-  if (!S.connected) { toast('請先連接 GitHub', 'error'); return; }
-  showLoading(`觸發任務 ${jobId}…`);
+  if (!S.connected) { toast('請先連接 GitHub', 'err'); return; }
+  showLoading('觸發任務 ' + jobId + '…');
   try {
-    await ghFetch(\`actions/workflows/\${encodeURIComponent(S.workflow)}/dispatches\`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ref: 'main', inputs: { job_id: jobId } }),
+    await ghPost('actions/workflows/' + encodeURIComponent(S.wf) + '/dispatches', {
+      ref: 'main',
+      inputs: { job_id: jobId }
     });
     hideLoading();
-    toast(\`🚀 任務 \${jobId} 已觸發！\`, 'success');
-    setTimeout(() => window.open(\`https://github.com/\${S.repo}/actions\`, '_blank'), 1500);
+    toast('🚀 任務 ' + jobId + ' 已觸發！', 'ok');
+    setTimeout(openActions, 1500);
   } catch(e) {
     hideLoading();
-    toast(\`觸發失敗：\${e.message}\`, 'error');
+    toast('觸發失敗：' + e.message, 'err');
   }
 }
 
-function loadJobToEdit(jobId) {
-  // Switch to command/youtube/channels/prices/schedule tabs for editing
-  // For now, just show a toast directing user
-  toast(\`請到各設定分頁修改後，在「任務管理」找到該任務名稱旁的排程設定\`, 'info');
-  navigate('command');
+function openActions() {
+  if (S.repo) window.open('https://github.com/' + S.repo + '/actions', '_blank');
 }
 
-function setVal(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
+// ══════════════════════════════════════════════════════════════════════
+// Form
+// ══════════════════════════════════════════════════════════════════════
+function populateForm(cfg) {
+  // Use first job if available, otherwise top-level
+  var jobs = cfg.jobs || [];
+  var job0 = jobs.length ? jobs[0] : {};
+  var yt   = job0.youtube || cfg.youtube || {};
+  var pr   = job0.prices  || cfg.prices  || {};
+  var sc   = cfg.schedule || {};
+
+  // Command
+  var cmd = job0.analysis_command || cfg.analysis_command || '';
+  setVal('cfg-cmd', cmd.trim());
+
+  // YouTube
+  setVal('cfg-topn',   yt.top_n         || 10);
+  setVal('cfg-hback',  job0.search_hours_back || yt.search_hours_back || 21);
+  setVal('cfg-minmin', yt.min_minutes   !== undefined ? yt.min_minutes : 0);
+  setVal('cfg-chper',  yt.channel_videos_per || 3);
+  var regionEl = document.getElementById('cfg-region');
+  if (regionEl) regionEl.value = yt.region_code || 'TW';
+  var langEl = document.getElementById('cfg-lang');
+  if (langEl) langEl.value = yt.language || 'zh-Hant';
+  var shortsEl = document.getElementById('cfg-shorts');
+  if (shortsEl) shortsEl.checked = yt.exclude_shorts !== false;
+
+  // Channels
+  var channels = yt.fixed_channels || [];
+  renderChannels(channels);
+
+  // Tickers
+  var tickers = cleanTickers(pr.extra_tickers || []);
+  renderTickers(tickers);
+
+  // Schedule
+  setVal('cfg-cron', sc.cron || job0.schedule || '0 1 * * 1-5');
+  updateCronDisplay();
+
+  // Jobs list
+  renderJobs(jobs);
 }
 
+function cleanTickers(raw) {
+  if (!raw) return [];
+  var arr = Array.isArray(raw) ? raw : String(raw).split(',');
+  return arr.map(function(t) {
+    t = String(t).trim().replace(/^["']+|["']+$/g, '');
+    var ci = t.indexOf(' #');
+    if (ci > 0) t = t.slice(0, ci).trim().replace(/^["']+|["']+$/g, '');
+    return t;
+  }).filter(function(t) { return t.length > 0; });
+}
+
+function cleanChannels(raw) {
+  if (!raw) return [];
+  var arr = Array.isArray(raw) ? raw : [];
+  return arr.map(function(c) {
+    return decodeURIComponent(String(c).trim().replace(/^["']+|["']+$/g, ''));
+  }).filter(function(c) { return c.length > 0; });
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // Channels
+// ══════════════════════════════════════════════════════════════════════
 function renderChannels(channels) {
-  const list = document.getElementById('channelList');
+  var list = document.getElementById('ch-list');
+  if (!list) return;
   list.innerHTML = '';
-  channels.forEach((ch, i) => {
-    const item = document.createElement('div');
-    item.className = 'channel-item';
-    item.innerHTML = `<span style="color:var(--red);font-size:13px">▶</span>
-      <input type="text" value="${escHtml(ch)}" placeholder="https://www.youtube.com/@handle"
-             onchange="markDirty()">
-      <button class="channel-remove" onclick="removeChannel(${i})">×</button>`;
+  channels = cleanChannels(channels);
+  channels.forEach(function(ch, i) {
+    var item = document.createElement('div');
+    item.className = 'ch-item';
+    item.innerHTML = '<span style="color:var(--red);font-size:13px">▶</span>' +
+      '<input type="text" value="' + esc(ch) + '" placeholder="https://www.youtube.com/@handle">' +
+      '<button class="ch-rm" data-idx="' + i + '">×</button>';
     list.appendChild(item);
   });
+  list.querySelectorAll('.ch-rm').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      removeChannel(parseInt(this.getAttribute('data-idx')));
+    });
+  });
+  list.querySelectorAll('input').forEach(function(inp) {
+    inp.addEventListener('input', markDirty);
+  });
 }
+
 function addChannel() {
-  const channels = getChannels();
+  var channels = getChannels();
   channels.push('');
   renderChannels(channels);
-  const inputs = document.getElementById('channelList').querySelectorAll('input');
+  var inputs = document.getElementById('ch-list').querySelectorAll('input');
   if (inputs.length) inputs[inputs.length - 1].focus();
   markDirty();
 }
+
 function removeChannel(i) {
-  const channels = getChannels();
+  var channels = getChannels();
   channels.splice(i, 1);
   renderChannels(channels);
   markDirty();
 }
+
 function getChannels() {
-  return [...document.getElementById('channelList').querySelectorAll('input')]
-    .map(el => el.value.trim()).filter(Boolean);
+  var inputs = document.getElementById('ch-list').querySelectorAll('input');
+  return Array.from(inputs).map(function(el) { return el.value.trim(); }).filter(Boolean);
 }
 
+// ══════════════════════════════════════════════════════════════════════
 // Tickers
+// ══════════════════════════════════════════════════════════════════════
 function renderTickers(tickers) {
-  const grid = document.getElementById('tickerGrid');
+  var grid = document.getElementById('t-grid');
+  if (!grid) return;
   grid.innerHTML = '';
-  tickers.forEach((t, i) => {
-    const tag = document.createElement('div');
-    tag.className = 'ticker-tag';
-    tag.innerHTML = `${escHtml(t)}
-      <button onclick="removeTicker(${i})" title="移除">×</button>`;
+  tickers.forEach(function(t, i) {
+    var tag = document.createElement('div');
+    tag.className = 't-tag';
+    tag.innerHTML = esc(t) + '<button data-idx="' + i + '" title="移除">×</button>';
     grid.appendChild(tag);
   });
+  grid.querySelectorAll('button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      removeTicker(parseInt(this.getAttribute('data-idx')));
+    });
+  });
 }
+
 function addTicker() {
-  const input = document.getElementById('newTickerInput');
-  const val   = input.value.trim().toUpperCase();
-  if (!val) return;
-  const tickers = getTickers();
-  if (!tickers.includes(val)) { tickers.push(val); renderTickers(tickers); markDirty(); }
+  var input   = document.getElementById('t-input');
+  var raw     = input ? input.value.trim().toUpperCase() : '';
+  var ticker  = raw.replace(/^["']+|["']+$/g, '');
+  if (!ticker) return;
+  var tickers = getTickers();
+  if (!tickers.includes(ticker)) {
+    tickers.push(ticker);
+    renderTickers(tickers);
+    markDirty();
+  }
   input.value = '';
   input.focus();
 }
-function removeTicker(i) {
-  const t = getTickers(); t.splice(i, 1); renderTickers(t); markDirty();
-}
-function getTickers() {
-  return [...document.getElementById('tickerGrid').querySelectorAll('.ticker-tag')]
-    .map(el => el.childNodes[0].textContent.trim()).filter(Boolean);
-}
 
-// Cron
-function updateCronDisplay() {
-  const cron = document.getElementById('cfgCron')?.value || '';
-  document.getElementById('cronDisplay').textContent = cron;
-  document.getElementById('cronDesc').textContent = describeCron(cron);
+function removeTicker(i) {
+  var t = getTickers();
+  t.splice(i, 1);
+  renderTickers(t);
   markDirty();
 }
-document.addEventListener('input', e => {
-  if (e.target.id === 'cfgCron') updateCronDisplay();
-  if (['cfgCommand','cfgTopN','cfgHoursBack','cfgRegion','cfgLang',
-       'cfgMinMin','cfgChPer'].includes(e.target.id)) markDirty();
-});
-document.addEventListener('change', e => {
-  if (e.target.id === 'cfgExcludeShorts') markDirty();
-});
+
+function getTickers() {
+  var tags = document.getElementById('t-grid').querySelectorAll('.t-tag');
+  return Array.from(tags).map(function(el) {
+    return el.childNodes[0].textContent.trim();
+  }).filter(Boolean);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Cron
+// ══════════════════════════════════════════════════════════════════════
+function updateCronDisplay() {
+  var cron = val('cfg-cron');
+  var dispEl = document.getElementById('cron-val');
+  var descEl = document.getElementById('cron-desc');
+  if (dispEl) dispEl.textContent = cron;
+  if (descEl) descEl.textContent = describeCron(cron);
+}
 
 function describeCron(cron) {
-  const m = CRON_PRESETS.find(p => p.cron === cron);
-  if (m) return m.desc;
-  const parts = cron.trim().split(/\s+/);
+  var preset = CRON_PRESETS.find(function(p) { return p.cron === cron; });
+  if (preset) return preset.desc;
+  var parts = cron.trim().split(/\s+/);
   if (parts.length < 5) return 'Cron 格式錯誤';
-  const [min, hr, , , dow] = parts;
-  const twHr = (parseInt(hr) + 8) % 24;
-  const dowDesc = dow === '*' ? '每天' : dow === '1-5' ? '週一到週五' : dow === '0-4' ? '週一到週五' : `週 ${dow}`;
-  return `台北時間 ${dowDesc} ${String(twHr).padStart(2,'0')}:${min.padStart(2,'0')}`;
+  var twHr = (parseInt(parts[1]) + 8) % 24;
+  var dowMap = {'*':'每天','1-5':'週一到週五','0-4':'週一到週五','5':'週五'};
+  var dowDesc = dowMap[parts[4]] || ('週 ' + parts[4]);
+  return '台北時間 ' + dowDesc + ' ' + String(twHr).padStart(2,'0') + ':' + String(parts[0]).padStart(2,'0');
 }
 
 function buildCronPresets() {
-  const el = document.getElementById('cronPresets');
+  var el = document.getElementById('cron-presets');
   if (!el) return;
-  CRON_PRESETS.forEach(p => {
-    const btn = document.createElement('button');
+  CRON_PRESETS.forEach(function(p) {
+    var btn = document.createElement('button');
     btn.className = 'btn btn-ghost btn-sm';
     btn.textContent = p.label;
-    btn.onclick = () => { document.getElementById('cfgCron').value = p.cron; updateCronDisplay(); };
+    btn.addEventListener('click', function() {
+      setVal('cfg-cron', p.cron);
+      updateCronDisplay();
+      markDirty();
+    });
     el.appendChild(btn);
   });
 }
 
 function buildExamples() {
-  const el = document.getElementById('exampleList');
+  var el = document.getElementById('example-list');
   if (!el) return;
-  EXAMPLES.forEach(ex => {
-    const btn = document.createElement('button');
+  EXAMPLES.forEach(function(ex) {
+    var btn = document.createElement('button');
     btn.className = 'btn btn-ghost btn-sm';
     btn.style.textAlign = 'left';
     btn.style.justifyContent = 'flex-start';
     btn.textContent = ex.label;
-    btn.onclick = () => {
-      document.getElementById('cfgCommand').value = ex.cmd;
+    btn.addEventListener('click', function() {
+      setVal('cfg-cmd', ex.cmd);
       markDirty();
-    };
+    });
     el.appendChild(btn);
   });
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Build YAML from form
-// ══════════════════════════════════════════════════════════════════════════════
-function buildYaml() {
-  const cmd      = document.getElementById('cfgCommand')?.value || '';
-  const topN     = parseInt(document.getElementById('cfgTopN')?.value) || 10;
-  const hrBack   = parseInt(document.getElementById('cfgHoursBack')?.value) || 21;
-  const region   = document.getElementById('cfgRegion')?.value || 'TW';
-  const lang     = document.getElementById('cfgLang')?.value || 'zh-Hant';
-  const minMin   = parseInt(document.getElementById('cfgMinMin')?.value) || 0;
-  const chPer    = parseInt(document.getElementById('cfgChPer')?.value) || 3;
-  const exShorts = document.getElementById('cfgExcludeShorts')?.checked !== false;
-  const channels = getChannels();
-  const tickers  = getTickers();
-  const cron     = document.getElementById('cfgCron')?.value || '0 1 * * 1-5';
-
-  // Normalize tickers: strip quotes/comments, add .TW for pure numbers
-  const normTickers = tickers
-    .map(t => {
-      // strip outer quotes and inline comments
-      t = t.trim().replace(/^["']|["']$/g, '');
-      const ci = t.indexOf(' #');
-      if (ci > 0) t = t.slice(0, ci).trim();
-      t = t.replace(/^["']|["']$/g, '').trim();
-      return t;
-    })
-    .filter(Boolean);
-
-  const chLines = channels.length
-    ? channels.map(c => `    - "${c}"`).join('\n')
-    : '    []';
-  const tkLines = normTickers.length
-    ? normTickers.map(t => `    - "${t}"`).join('\n')
-    : '    []';
-
-  // Indent multi-line command
-  const cmdIndented = cmd.split('\n').map(l => '  ' + l).join('\n');
-
-  return `# =============================================================================
-# config.yaml – 投資日報設定檔
-# 由 Web 控制台自動生成 – ${new Date().toISOString().slice(0,16)} (UTC)
-# =============================================================================
-
-analysis_command: |
-${cmdIndented}
-
-youtube:
-  top_n: ${topN}
-  region_code: "${region}"
-  language: "${lang}"
-  min_minutes: ${minMin}
-  exclude_shorts: ${exShorts}
-  search_hours_back: ${hrBack}
-  fixed_channels:
-${chLines}
-  channel_videos_per: ${chPer}
-
-prices:
-  extra_tickers:
-${tkLines}
-
-schedule:
-  cron: "${cron}"
-
-notebooklm:
-  infographic_language: "zh_Hant"
-  infographic_instructions: |
-    請用繁體中文生成資訊圖表。
-    風格清楚、商業報告感，適合主管閱讀。
-    重點包含：股票/ETF彙整、博主共識、風險警示。
-
-report:
-  subject_prefix: "📊 投資分析日報"
-`;
+// ══════════════════════════════════════════════════════════════════════
+// Jobs list
+// ══════════════════════════════════════════════════════════════════════
+function renderJobs(jobs) {
+  var el = document.getElementById('jobs-body');
+  if (!el) return;
+  if (!jobs || !jobs.length) {
+    el.innerHTML = '<div style="color:var(--text3)">沒有 jobs 陣列（使用舊版單任務格式）</div>';
+    return;
+  }
+  var html = '';
+  jobs.forEach(function(j) {
+    var enabled     = j.enabled !== false;
+    var statusColor = enabled ? 'var(--green)' : 'var(--text3)';
+    var statusText  = enabled ? '✅ 啟用' : '⛔ 停用';
+    var csch        = describeCron(j.schedule || '');
+    var chCount     = ((j.youtube || {}).fixed_channels || []).length;
+    var cmdPreview  = (j.analysis_command || '').replace(/\n/g,' ').slice(0,90);
+    html += '<div class="job-card">';
+    html += '<div class="job-head">';
+    html += '<div style="display:flex;align-items:center;gap:9px">';
+    html += '<span style="font-weight:700">' + esc(j.name || j.id || '?') + '</span>';
+    html += '<code style="font-family:var(--mono);font-size:10px;color:var(--amber);background:var(--bg4);padding:2px 6px;border-radius:3px">' + esc(j.id || '') + '</code>';
+    html += '<span style="font-size:12px;color:' + statusColor + '">' + statusText + '</span>';
+    html += '</div>';
+    html += '<button class="btn btn-success btn-sm" onclick="triggerJob(\'' + esc(j.id || '') + '\')">▶ 立即執行</button>';
+    html += '</div>';
+    html += '<div class="job-meta">🕐 ' + esc(csch) + ' &nbsp;|&nbsp; 時間窗口：' + esc(String(j.search_hours_back || 21)) + ' 小時 &nbsp;|&nbsp; 固定頻道：' + chCount + ' 個</div>';
+    html += '<div class="job-cmd">' + esc(cmdPreview) + '</div>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// Minimal YAML parser (handles the subset we need)
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// Build YAML
+// ══════════════════════════════════════════════════════════════════════
+function buildYaml() {
+  var cmd     = val('cfg-cmd');
+  var topN    = parseInt(val('cfg-topn'))   || 10;
+  var hback   = parseInt(val('cfg-hback'))  || 21;
+  var region  = val('cfg-region') || 'TW';
+  var lang    = val('cfg-lang')   || 'zh-Hant';
+  var minMin  = parseInt(val('cfg-minmin')) || 0;
+  var chPer   = parseInt(val('cfg-chper'))  || 3;
+  var exShorts= document.getElementById('cfg-shorts') && document.getElementById('cfg-shorts').checked;
+  var channels = getChannels();
+  var tickers  = getTickers();
+  var cron     = val('cfg-cron') || '0 1 * * 1-5';
+
+  var normTickers = tickers.map(function(t) {
+    t = t.trim().replace(/^["']+|["']+$/g,'');
+    return /^\d{4,6}$/.test(t) ? t + '.TW' : t;
+  }).filter(function(t){ return t; });
+
+  var chLines = channels.length
+    ? channels.map(function(c){ return '        - "' + c + '"'; }).join('\n')
+    : '        []';
+  var tkLines = normTickers.length
+    ? normTickers.map(function(t){ return '    - "' + t + '"'; }).join('\n')
+    : '    []';
+
+  var cmdIndented = cmd.split('\n').map(function(l){ return '      ' + l; }).join('\n');
+
+  return '# config.yaml – 由控制台生成 ' + new Date().toISOString().slice(0,16) + ' UTC\n' +
+'# 機密資料（API Key / Cookie）請放 GitHub Secrets\n\n' +
+'defaults:\n' +
+'  region_code: "' + region + '"\n' +
+'  language: "' + lang + '"\n' +
+'  min_minutes: ' + minMin + '\n' +
+'  exclude_shorts: ' + exShorts + '\n' +
+'  channel_videos_per: ' + chPer + '\n' +
+'  top_n: ' + topN + '\n\n' +
+'jobs:\n\n' +
+'  - id: morning_tw\n' +
+'    name: "🌅 台股早報"\n' +
+'    enabled: true\n' +
+'    schedule: "' + cron + '"\n' +
+'    search_hours_back: ' + hback + '\n' +
+'    analysis_command: |\n' +
+cmdIndented + '\n' +
+'    youtube:\n' +
+'      top_n: ' + topN + '\n' +
+'      fixed_channels:\n' +
+chLines + '\n' +
+'      channel_videos_per: ' + chPer + '\n' +
+'    prices:\n' +
+'      extra_tickers:\n' +
+tkLines + '\n\n' +
+'report:\n  subject_prefix: "📊 投資分析日報"\n\n' +
+'notebooklm:\n  infographic_language: "zh_Hant"\n' +
+'  infographic_instructions: |\n' +
+'    請用繁體中文生成資訊圖表。\n' +
+'    風格清楚、商業報告感，適合主管閱讀。\n' +
+'    重點包含：股票/ETF彙整、博主共識、風險警示。\n';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// YAML parser (subset needed for our config)
+// ══════════════════════════════════════════════════════════════════════
 function parseYaml(text) {
-  // We only need to parse our specific config.yaml structure
-  const obj = {};
-  const lines = text.split('\n');
-  let i = 0;
+  var lines = text.split('\n');
+  var i = 0;
 
-  function skipComment(line) { return line.trim().startsWith('#') || line.trim() === ''; }
-
-  function getIndent(line) { return line.match(/^(\s*)/)[1].length; }
-
-  function parseValue(raw) {
-    const v = raw.trim();
+  function indent(line) { var m = line.match(/^(\s*)/); return m ? m[1].length : 0; }
+  function skip() { return i < lines.length && (lines[i].trim() === '' || lines[i].trim().startsWith('#')); }
+  function parseVal(v) {
+    v = v.trim();
     if (v === 'true')  return true;
     if (v === 'false') return false;
     if (v === 'null' || v === '~') return null;
-    if (/^\d+$/.test(v)) return parseInt(v);
-    if (/^["'](.*)["']$/.test(v)) return v.slice(1, -1);
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^["'].*["']$/.test(v)) return v.slice(1,-1);
     return v;
   }
 
-  // Parse block scalar (|)
-  function parseBlockScalar(baseIndent) {
-    const lines2 = [];
+  function parseBlock(baseIndent) {
+    var lines2 = [];
     while (i < lines.length) {
-      const line = lines[i];
-      if (line.trim() === '' || getIndent(line) > baseIndent) {
-        lines2.push(line.trimStart() === '' ? '' : line.slice(baseIndent));
+      var line = lines[i];
+      if (line.trim() === '' || indent(line) > baseIndent) {
+        lines2.push(line.trim() === '' ? '' : line.slice(baseIndent));
         i++;
       } else break;
     }
     return lines2.join('\n').trimEnd() + '\n';
   }
 
-  // Parse list
   function parseList(baseIndent) {
-    const arr = [];
+    var arr = [];
     while (i < lines.length) {
-      const line = lines[i];
-      if (skipComment(line)) { i++; continue; }
-      if (getIndent(line) < baseIndent) break;
-      const trimmed = line.trim();
-      if (trimmed.startsWith('- ')) {
-        let val = trimmed.slice(2).trim();
-        // Strip outer quotes
-        if (/^["'].*["']$/.test(val)) val = val.slice(1, -1);
-        // Strip inline YAML comment (space + #)
-        const commentIdx = val.indexOf(' #');
-        if (commentIdx > 0) val = val.slice(0, commentIdx).trim().replace(/['"]/g, '');
-        // Strip any remaining quotes
-        val = val.replace(/^["']|["']$/g, '');
-        if (val) arr.push(val);
+      while (skip()) i++;
+      if (i >= lines.length) break;
+      var line = lines[i];
+      if (indent(line) < baseIndent) break;
+      var t = line.trim();
+      if (t.startsWith('- ')) {
+        var v = t.slice(2).trim();
+        if (/^["'].*["']$/.test(v)) v = v.slice(1,-1);
+        var ci = v.indexOf(' #');
+        if (ci > 0) v = v.slice(0,ci).trim().replace(/^["']+|["']+$/g,'');
+        if (v !== '[]') arr.push(v);
+        i++;
+      } else if (t === '-') {
         i++;
       } else break;
     }
     return arr;
   }
 
-  // Parse mapping
-  function parseMapping(baseIndent) {
-    const map = {};
+  function parseMap(baseIndent) {
+    var obj = {};
     while (i < lines.length) {
-      const line = lines[i];
-      if (skipComment(line)) { i++; continue; }
-      if (getIndent(line) < baseIndent) break;
-      const trimmed = line.trim();
-      const colonIdx = trimmed.indexOf(':');
-      if (colonIdx < 0) { i++; continue; }
-      const key = trimmed.slice(0, colonIdx).trim();
-      const rest = trimmed.slice(colonIdx + 1).trim();
+      while (skip()) i++;
+      if (i >= lines.length) break;
+      var line = lines[i];
+      if (line.trim() === '' || indent(line) < baseIndent) break;
+      var t = line.trim();
+      var ci = t.indexOf(':');
+      if (ci < 0) { i++; continue; }
+      var key  = t.slice(0, ci).trim();
+      var rest = t.slice(ci + 1).trim();
       i++;
       if (rest === '|' || rest === '|-' || rest === '|+') {
-        map[key] = parseBlockScalar(getIndent(line) + 2);
-      } else if (rest === '') {
-        // Look ahead to determine if list or mapping
-        const nextLine = lines.slice(i).find(l => l.trim() !== '' && !l.trim().startsWith('#'));
-        if (nextLine && nextLine.trim().startsWith('- ')) {
-          map[key] = parseList(getIndent(line) + 2);
-        } else if (nextLine && getIndent(nextLine) > getIndent(line)) {
-          map[key] = parseMapping(getIndent(line) + 2);
-        } else {
-          map[key] = null;
+        obj[key] = parseBlock(indent(line) + 2);
+      } else if (rest === '' || rest === '[]') {
+        while (skip()) i++;
+        if (i < lines.length) {
+          var next = lines[i];
+          if (next && indent(next) > indent(line)) {
+            if (next.trim().startsWith('- ')) {
+              obj[key] = parseList(indent(line) + 2);
+            } else {
+              obj[key] = parseMap(indent(line) + 2);
+            }
+          } else {
+            obj[key] = rest === '[]' ? [] : null;
+          }
         }
       } else {
-        map[key] = parseValue(rest);
+        obj[key] = parseVal(rest);
       }
     }
-    return map;
+    return obj;
   }
 
-  return parseMapping(0);
+  return parseMap(0);
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
+// UTF-8 decode helper
+// ══════════════════════════════════════════════════════════════════════
+function utf8Decode(str) {
+  try { return decodeURIComponent(escape(str)); } catch(e) { return str; }
+}
+
+// ══════════════════════════════════════════════════════════════════════
 // UI helpers
-// ══════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════
 function markDirty() {
   S.dirty = true;
-  document.getElementById('saveStatus').textContent = '⚠ 有未儲存的修改';
+  var el = document.getElementById('save-status');
+  if (el) el.textContent = '⚠ 有未儲存的修改';
 }
 
 function showLoading(msg) {
-  document.getElementById('loadingText').textContent = msg || '處理中…';
-  document.getElementById('loadingOverlay').classList.add('show');
-  document.getElementById('statusDot').className = 'status-dot loading';
+  var ld = document.getElementById('ld');
+  var lm = document.getElementById('ldmsg');
+  if (lm) lm.textContent = msg || '處理中…';
+  if (ld) ld.classList.add('on');
+  var dot = document.getElementById('sdot');
+  if (dot) { dot.className = 'status-dot busy'; }
 }
+
 function hideLoading() {
-  document.getElementById('loadingOverlay').classList.remove('show');
-  document.getElementById('statusDot').className = 'status-dot ' + (S.connected ? 'connected' : '');
+  var ld = document.getElementById('ld');
+  if (ld) ld.classList.remove('on');
+  var dot = document.getElementById('sdot');
+  if (dot) dot.className = 'status-dot' + (S.connected ? ' ok' : '');
 }
 
-function toast(msg, type = 'info') {
-  const c = document.getElementById('toastContainer');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-  el.innerHTML = `<span>${icon}</span><span>${escHtml(msg)}</span>`;
+function toast(msg, type) {
+  type = type || 'info';
+  var c = document.getElementById('tw');
+  if (!c) return;
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  var icon = type === 'ok' ? '✅' : type === 'err' ? '❌' : 'ℹ️';
+  el.innerHTML = '<span>' + icon + '</span><span>' + esc(msg) + '</span>';
   c.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
-
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 4500);
 }
 </script>
 </body>
