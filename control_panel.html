@@ -1102,22 +1102,16 @@ function parseYaml(text) {
     return v; 
   }
 
-  // 專門處理 analysis_command: | 的多行內容
+  // 處理多行指令 (|)
   function pblock(baseInd) { 
     var ls = [];
     while (i < lines.length) {
       var l = lines[i];
-      if (l.trim() === '') { 
-        ls.push(''); 
-        i++; 
-        continue; 
-      }
+      if (l.trim() === '') { ls.push(''); i++; continue; }
       if (ind(l) >= baseInd) { 
         ls.push(l.slice(baseInd)); 
         i++; 
-      } else {
-        break;
-      }
+      } else break;
     }
     return ls.join('\n').trimEnd() + '\n';
   }
@@ -1131,17 +1125,15 @@ function parseYaml(text) {
       var t = l.trim();
       if (t.startsWith('- ')) {
         var v = t.slice(2).trim();
-        if (v === '' || v === '{}' || v === '[]') {
-          // 處理陣列中的物件
-          i++;
+        // 檢查是否為陣列中的物件起始
+        if (v === '' || (i + 1 < lines.length && ind(lines[i+1]) > ind(l))) {
+          i++; 
           a.push(pmap(ind(l) + 2));
         } else {
           a.push(pval(v));
           i++;
         }
-      } else {
-        break;
-      }
+      } else break;
     }
     return a;
   }
@@ -1163,7 +1155,7 @@ function parseYaml(text) {
       i++;
 
       if (rest === '|' || rest === '|-') {
-        // 找到下一行有內容的縮排作為基準
+        // 多行區塊處理
         var nextIdx = i;
         while(nextIdx < lines.length && lines[nextIdx].trim() === '') nextIdx++;
         o[key] = pblock(nextIdx < lines.length ? ind(lines[nextIdx]) : currentInd + 2);
