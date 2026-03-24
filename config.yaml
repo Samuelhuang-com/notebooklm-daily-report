@@ -36,6 +36,32 @@ jobs:
     prices:
       extra_tickers: []
 
+  - id: new_job_1774360046057
+    name: 新任務
+    enabled: false
+    schedule: "0 1 * * 1-5"
+    search_hours_back: 21
+    analysis_command: |
+      台股 ETF 0056 00878 高股息 存股｜
+      整理本週關於高股息ETF的熱門討論：
+      1. 各ETF評價比較
+      2. 除權息策略建議
+      3. 博主對定期定額vs擇時進場的看法
+    youtube:
+      top_n: 10
+      region_code: TW
+      language: zh-Hant
+      min_minutes: 0
+      exclude_shorts: true
+      channel_videos_per: 3
+      fixed_channels: []
+    prices:
+      extra_tickers:
+        - 2330.TW
+        - 0050.TW
+        - ^TWII
+        - ^GSPC
+
 report:
   subject_prefix: 📊 投資分析日報
 
