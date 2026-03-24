@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -585,6 +584,9 @@ input[type=number] { font-family: var(--mono); width: 100px; }
     <div class="nav-item" onclick="navigate('schedule')" id="nav-schedule">
       <span class="nav-icon">🕐</span> 排程設定
     </div>
+    <div class="nav-item" onclick="navigate('jobs')" id="nav-jobs">
+      <span class="nav-icon">📋</span> 任務管理
+    </div>
     <div class="sidebar-section-label">工具</div>
     <div class="nav-item" onclick="navigate('connection')" id="nav-connection">
       <span class="nav-icon">🔗</span> GitHub 連線
@@ -786,6 +788,36 @@ input[type=number] { font-family: var(--mono); width: 100px; }
           <div style="margin-top:20px">
             <div style="font-size:12px;color:var(--text2);margin-bottom:10px">常用時間快選：</div>
             <div style="display:flex;flex-wrap:wrap;gap:6px" id="cronPresets"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Jobs management ─────────────────────────────────────────────────── -->
+    <div id="section-jobs" style="display:none">
+      <div class="section-title">任務管理</div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 所有任務（從 config.yaml 讀取）</div>
+          <button class="btn btn-ghost btn-sm" onclick="loadConfig()">↻ 重新整理</button>
+        </div>
+        <div class="card-body" id="jobsListBody">
+          <div style="color:var(--text3);font-size:13px">請先載入 config.yaml</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⏰ 排程說明（UTC → 台北時間）</div>
+        </div>
+        <div class="card-body">
+          <div style="font-size:12px;color:var(--text2);line-height:2">
+            每 <strong>30 分鐘</strong>，GitHub Actions 啟動一次，Python 自動判斷哪個任務需要執行<br>
+            <code style="color:var(--amber)">schedule: "0 1 * * 1-5"</code> = 台北時間週一到週五 09:00<br>
+            <code style="color:var(--amber)">schedule: "0 13 * * 1-5"</code> = 台北時間週一到週五 21:00<br>
+            <code style="color:var(--amber)">enabled: false</code> = 停用（不會自動執行）<br><br>
+            若要新增任務：到 <strong>config.yaml</strong> 複製一個 job 區塊，修改 id / schedule / command 即可
           </div>
         </div>
       </div>
@@ -1024,7 +1056,11 @@ async function saveConfig() {
   try {
     const body = {
       message: `chore: update config.yaml via web console [${new Date().toISOString().slice(0,16)}]`,
-      content: btoa(unescape(encodeURIComponent(yaml))),
+      // Proper UTF-8 safe base64 encoding
+      const bytes = new TextEncoder().encode(yaml);
+      let binary = '';
+      bytes.forEach(b => binary += String.fromCharCode(b));
+      content: btoa(binary),
       sha: S.sha,
     };
     const res = await ghFetch('contents/config.yaml', {
@@ -1097,6 +1133,73 @@ function populateForm(cfg) {
   // Schedule
   setVal('cfgCron', sc.cron || '0 1 * * 1-5');
   updateCronDisplay();
+
+  // Jobs list
+  renderJobsList(cfg.jobs || []);
+}
+
+function renderJobsList(jobs) {
+  const el = document.getElementById('jobsListBody');
+  if (!el) return;
+  if (!jobs || !jobs.length) {
+    el.innerHTML = '<div style="color:var(--text3)">沒有任務（使用舊版格式）</div>';
+    return;
+  }
+  el.innerHTML = jobs.map(j => {
+    const enabled = j.enabled !== false;
+    const statusColor = enabled ? 'var(--green)' : 'var(--text3)';
+    const statusText  = enabled ? '✅ 啟用' : '⛔ 停用';
+    const cronTw = describeCron(j.schedule || '');
+    return `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+                padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-weight:700;color:var(--text)">${escHtml(j.name || j.id || '?')}</span>
+          <code style="font-family:var(--mono);font-size:10px;color:var(--amber);
+                background:var(--bg4);padding:2px 6px;border-radius:3px">${escHtml(j.id || '')}</code>
+          <span style="font-size:12px;color:${statusColor}">${statusText}</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" onclick="triggerJob('${escHtml(j.id||'')}')">▶ 立即執行</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadJobToEdit('${escHtml(j.id||'')}')">✏ 編輯</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">
+        🕐 <strong>${escHtml(cronTw)}</strong>
+        &nbsp;|&nbsp; 時間窗口：${escHtml(String(j.search_hours_back || 21))} 小時
+        &nbsp;|&nbsp; 頻道：${((j.youtube || {}).fixed_channels || []).length} 個
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;font-family:var(--mono);
+                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        ${escHtml((j.analysis_command || '').replace(/\n/g,' ').slice(0,100))}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function triggerJob(jobId) {
+  if (!S.connected) { toast('請先連接 GitHub', 'error'); return; }
+  showLoading(`觸發任務 ${jobId}…`);
+  try {
+    await ghFetch(\`actions/workflows/\${encodeURIComponent(S.workflow)}/dispatches\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main', inputs: { job_id: jobId } }),
+    });
+    hideLoading();
+    toast(\`🚀 任務 \${jobId} 已觸發！\`, 'success');
+    setTimeout(() => window.open(\`https://github.com/\${S.repo}/actions\`, '_blank'), 1500);
+  } catch(e) {
+    hideLoading();
+    toast(\`觸發失敗：\${e.message}\`, 'error');
+  }
+}
+
+function loadJobToEdit(jobId) {
+  // Switch to command/youtube/channels/prices/schedule tabs for editing
+  // For now, just show a toast directing user
+  toast(\`請到各設定分頁修改後，在「任務管理」找到該任務名稱旁的排程設定\`, 'info');
+  navigate('command');
 }
 
 function setVal(id, val) {
@@ -1238,11 +1341,17 @@ function buildYaml() {
   const tickers  = getTickers();
   const cron     = document.getElementById('cfgCron')?.value || '0 1 * * 1-5';
 
-  // Normalize ticker formatting (add .TW for pure numbers)
-  const normTickers = tickers.map(t => {
-    if (/^\d{4,6}$/.test(t)) return t + '.TW';
-    return t;
-  });
+  // Normalize tickers: strip quotes/comments, add .TW for pure numbers
+  const normTickers = tickers
+    .map(t => {
+      // strip outer quotes and inline comments
+      t = t.trim().replace(/^["']|["']$/g, '');
+      const ci = t.indexOf(' #');
+      if (ci > 0) t = t.slice(0, ci).trim();
+      t = t.replace(/^["']|["']$/g, '').trim();
+      return t;
+    })
+    .filter(Boolean);
 
   const chLines = channels.length
     ? channels.map(c => `    - "${c}"`).join('\n')
@@ -1338,8 +1447,14 @@ function parseYaml(text) {
       const trimmed = line.trim();
       if (trimmed.startsWith('- ')) {
         let val = trimmed.slice(2).trim();
-        if (/^["'](.*)["']$/.test(val)) val = val.slice(1,-1);
-        arr.push(val);
+        // Strip outer quotes
+        if (/^["'].*["']$/.test(val)) val = val.slice(1, -1);
+        // Strip inline YAML comment (space + #)
+        const commentIdx = val.indexOf(' #');
+        if (commentIdx > 0) val = val.slice(0, commentIdx).trim().replace(/['"]/g, '');
+        // Strip any remaining quotes
+        val = val.replace(/^["']|["']$/g, '');
+        if (val) arr.push(val);
         i++;
       } else break;
     }
