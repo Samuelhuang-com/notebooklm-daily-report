@@ -84,36 +84,101 @@ log = logging.getLogger("headless")
 # Config
 # =============================================================================
 def _load_yaml_config(path: str = "config.yaml") -> dict:
-    """
-    Load config.yaml.  Returns empty dict if file not found or pyyaml not installed.
-    pyyaml is in requirements_headless.txt so should always be available.
-    """
+    """Load config.yaml; returns {} if missing or unparsable."""
     try:
         import yaml
-        cfg_path = Path(path)
-        if not cfg_path.exists():
-            # Also try relative to script location
-            cfg_path = Path(__file__).parent / path
-        if cfg_path.exists():
-            log.info(f"設定檔載入：{cfg_path}")
-            with open(cfg_path, encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        log.warning(f"找不到設定檔 {path}，將使用環境變數預設值")
+        for p in [Path(path), Path(__file__).parent / path]:
+            if p.exists():
+                log.info(f"設定檔載入：{p}")
+                with open(p, encoding="utf-8") as f:
+                    return yaml.safe_load(f) or {}
+        log.warning(f"找不到設定檔 {path}")
     except Exception as e:
-        log.warning(f"設定檔載入失敗：{e}，將使用環境變數預設值")
+        log.warning(f"設定檔載入失敗：{e}")
     return {}
 
 
-class Config:
-    def __init__(self, config_file: str = "config.yaml"):
-        # Load config.yaml first, then Secrets override where set
-        _cfg = _load_yaml_config(config_file)
-        _yt  = _cfg.get("youtube", {}) or {}
-        _pr  = _cfg.get("prices", {}) or {}
-        _nb  = _cfg.get("notebooklm", {}) or {}
-        _rp  = _cfg.get("report", {}) or {}
+def _cron_matches_now(cron_expr: str, tolerance_minutes: int = 28) -> bool:
+    """
+    Returns True if the cron expression matches the current UTC time
+    within ±tolerance_minutes.  Supports standard 5-field cron.
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        parts = cron_expr.strip().split()
+        if len(parts) != 5:
+            return False
+        c_min, c_hr, c_dom, c_mon, c_dow = parts
 
-        # ── Secrets (sensitive – always from GitHub Secrets / env) ────────────
+        def _match(val, current, min_v, max_v):
+            if val == "*":
+                return True
+            if "-" in val:
+                a, b = map(int, val.split("-"))
+                return a <= current <= b
+            if "," in val:
+                return current in map(int, val.split(","))
+            if "/" in val:
+                base, step = val.split("/")
+                step = int(step)
+                start = int(base) if base != "*" else min_v
+                return (current - start) % step == 0 and current >= start
+            return int(val) == current
+
+        # Check with tolerance window
+        for delta in range(0, tolerance_minutes + 1):
+            t = now - timedelta(minutes=delta)
+            if (_match(c_min, t.minute, 0, 59) and
+                _match(c_hr,  t.hour,   0, 23) and
+                _match(c_dow, t.weekday(), 0, 6)):   # Python: Mon=0, Sun=6
+                return True
+        return False
+    except Exception as e:
+        log.warning(f"Cron 解析失敗（{cron_expr}）：{e}")
+        return False
+
+
+def _str_tickers(raw) -> List[str]:
+    """Parse ticker list from yaml value; strips comments and quotes."""
+    if not raw:
+        return []
+    result = []
+    for item in (raw if isinstance(raw, list) else str(raw).split(",")):
+        t = str(item).strip().strip('"\'')
+        # strip inline yaml comment
+        if " #" in t:
+            t = t[:t.index(" #")].strip().strip('"\'')
+        if t:
+            result.append(t)
+    return result
+
+
+def _str_channels(raw) -> List[str]:
+    """Parse channel list from yaml; URL-decodes entries."""
+    from urllib.parse import unquote as _uq
+    if not raw:
+        return []
+    result = []
+    for item in (raw if isinstance(raw, list) else str(raw).split(",")):
+        ch = _uq(str(item).strip().strip('"\''))
+        if ch:
+            result.append(ch)
+    return result
+
+
+class Config:
+    """
+    Holds settings for ONE job run.
+    Built from config.yaml (jobs[] entry) + GitHub Secrets.
+    """
+    def __init__(self, job_dict: dict, global_cfg: dict):
+        defs = global_cfg.get("defaults", {}) or {}
+        _nb  = global_cfg.get("notebooklm", {}) or {}
+        _rp  = global_cfg.get("report", {}) or {}
+        _yt  = job_dict.get("youtube", {}) or {}
+        _pr  = job_dict.get("prices", {}) or {}
+
+        # ── Secrets (always from env) ─────────────────────────────────────────
         self.youtube_api_key    = os.environ.get("YOUTUBE_API_KEY", "").strip()
         self.notebook_id        = os.environ.get("NOTEBOOK_ID", "").strip()
         self.storage_state_b64  = os.environ.get("STORAGE_STATE_B64", "").strip()
@@ -123,86 +188,127 @@ class Config:
         self.gdrive_sa_b64      = os.environ.get("GDRIVE_SA_JSON_B64", "").strip()
         self.gdrive_folder_id   = os.environ.get("GDRIVE_FOLDER_ID", "").strip()
 
-        # EMAIL_TO: Secret overrides config (comma separated)
         _email_secret = os.environ.get("EMAIL_TO", "").strip()
-        if _email_secret:
-            self.email_to = [e.strip() for e in _email_secret.split(",") if e.strip()]
-        else:
-            _email_yaml = _cfg.get("email_to", "") or ""
-            self.email_to = [e.strip() for e in str(_email_yaml).split(",") if e.strip()]
+        self.email_to = [e.strip() for e in _email_secret.split(",") if e.strip()] if _email_secret else []
 
-        # ── Analysis settings (config.yaml, Secret overrides if set) ──────────
-        # analysis_command: yaml value first, then ANALYSIS_COMMAND secret
-        _cmd_yaml   = str(_cfg.get("analysis_command", "") or "").strip()
+        # ── Job identity ──────────────────────────────────────────────────────
+        self.job_id   = str(job_dict.get("id", "default"))
+        self.job_name = str(job_dict.get("name", self.job_id))
+
+        # ── Analysis command: job > env > fallback ────────────────────────────
+        _cmd_job    = str(job_dict.get("analysis_command", "") or "").strip()
         _cmd_secret = os.environ.get("ANALYSIS_COMMAND", "").strip()
         self.analysis_command = (
-            _cmd_secret or _cmd_yaml or
-            "台股 美股 ETF 投資 財經｜"
-            "請整理今天最熱門的投資影片，重點萃取："
-            "1. 提到的股票代號、ETF代號、目標價、支撐壓力位 "
-            "2. 博主觀點與市場共識分歧 "
-            "3. 每支影片的核心論點（1-2句）"
-            "4. 播放量特別高的原因（標題策略、發布時機、獨家資訊）"
-            "輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表"
+            _cmd_secret or _cmd_job or
+            "台股 美股 ETF 投資 財經｜請整理今天最熱門的投資影片。"
         )
 
-        # YouTube settings – yaml first, env override if set
-        self.top_n       = int(os.environ.get("TOP_N") or _yt.get("top_n", 10) or 10)
-        self.region_code = (os.environ.get("REGION_CODE") or
-                            str(_yt.get("region_code", "TW"))).strip() or "TW"
-        self.language    = (os.environ.get("LANGUAGE") or
-                            str(_yt.get("language", "zh-Hant"))).strip() or "zh-Hant"
-        self.min_minutes = int(os.environ.get("MIN_MINUTES") or _yt.get("min_minutes", 0) or 0)
+        # ── YouTube settings: job > defaults > hardcoded ──────────────────────
+        self.top_n       = int(_yt.get("top_n") or defs.get("top_n", 10) or 10)
+        self.region_code = str(_yt.get("region_code") or defs.get("region_code", "TW") or "TW")
+        self.language    = str(_yt.get("language") or defs.get("language", "zh-Hant") or "zh-Hant")
+        self.min_minutes = int(_yt.get("min_minutes") if _yt.get("min_minutes") is not None
+                               else defs.get("min_minutes", 0) or 0)
         self.search_hours_back = int(
-            os.environ.get("SEARCH_HOURS_BACK") or _yt.get("search_hours_back", 21) or 21)
-
-        # Fixed channels from config.yaml
-        _ch_yaml = _yt.get("fixed_channels", []) or []
-        self.fixed_channels: List[str] = [
-            str(ch).strip() for ch in (_ch_yaml if isinstance(_ch_yaml, list) else [])
-            if str(ch).strip()
-        ]
+            job_dict.get("search_hours_back") or defs.get("search_hours_back", 21) or 21)
         self.channel_videos_per = int(
-            os.environ.get("CHANNEL_VIDEOS_PER") or _yt.get("channel_videos_per", 3) or 3)
+            _yt.get("channel_videos_per") or defs.get("channel_videos_per", 3) or 3)
 
-        # Extra tickers from config.yaml + EXTRA_TICKERS secret
-        _tickers_yaml   = _pr.get("extra_tickers", []) or []
-        _tickers_secret = [t.strip() for t in
-                           os.environ.get("EXTRA_TICKERS", "").split(",") if t.strip()]
+        # Fixed channels – URL-decoded
+        self.fixed_channels: List[str] = _str_channels(_yt.get("fixed_channels", []))
+
+        # Extra tickers – comments/quotes stripped + EXTRA_TICKERS secret
+        _tickers_yaml   = _str_tickers(_pr.get("extra_tickers", []))
+        _tickers_secret = _str_tickers(os.environ.get("EXTRA_TICKERS", ""))
         seen_t: set = set()
         self.extra_tickers: List[str] = []
-        for t in list(_tickers_yaml) + _tickers_secret:
-            t = str(t).strip()
+        for t in _tickers_yaml + _tickers_secret:
             if t and t not in seen_t:
                 seen_t.add(t)
                 self.extra_tickers.append(t)
 
-        # NotebookLM infographic settings
+        # NotebookLM
         self.infographic_instructions = str(
             _nb.get("infographic_instructions", "請用繁體中文生成資訊圖表，風格清楚商業感。")
         ).strip()
 
-        # Report subject prefix
-        self.subject_prefix = str(
-            _rp.get("subject_prefix", "📊 投資分析日報")
-        ).strip()
+        # Report
+        self.subject_prefix = str(_rp.get("subject_prefix", "📊 投資分析日報")).strip()
 
-        # Log what was loaded
-        log.info(f"設定摘要：")
-        log.info(f"  分析指令來源：{'Secret' if _cmd_secret else 'config.yaml'}")
-        log.info(f"  搜尋時間窗口：{self.search_hours_back} 小時")
-        log.info(f"  固定頻道數量：{len(self.fixed_channels)}")
-        log.info(f"  額外報價代號：{', '.join(self.extra_tickers) or '（無）'}")
+        log.info(f"[{self.job_id}] 任務：{self.job_name}")
+        log.info(f"  指令（前60字）：{self.analysis_command[:60]}…")
+        log.info(f"  時間窗口：{self.search_hours_back} 小時 | Top N：{self.top_n}")
+        log.info(f"  固定頻道：{len(self.fixed_channels)} 個")
+        log.info(f"  報價代號：{', '.join(self.extra_tickers) or '（自動偵測）'}")
 
     def validate(self) -> List[str]:
         errors = []
         if not self.youtube_api_key:
-            errors.append("YOUTUBE_API_KEY 未設定（需放在 GitHub Secrets）")
+            errors.append("YOUTUBE_API_KEY 未設定")
         if not self.notebook_id and _HAS_NOTEBOOKLM:
-            errors.append("NOTEBOOK_ID 未設定（需放在 GitHub Secrets）")
+            errors.append("NOTEBOOK_ID 未設定")
         if not self.storage_state_b64 and _HAS_NOTEBOOKLM:
-            errors.append("STORAGE_STATE_B64 未設定（需放在 GitHub Secrets）")
+            errors.append("STORAGE_STATE_B64 未設定")
         return errors
+
+
+def load_jobs_to_run(job_id_filter: str = "") -> List[tuple]:
+    """
+    Returns list of (Config, global_cfg) for jobs that should run now.
+    job_id_filter: if set, only run that specific job (ignores schedule).
+    """
+    global_cfg = _load_yaml_config()
+    jobs = global_cfg.get("jobs", []) or []
+
+    # Fall back to legacy single-job format
+    if not jobs:
+        log.warning("config.yaml 沒有 jobs 清單，使用舊版單一任務格式")
+        legacy_job = {
+            "id": "default",
+            "name": "預設任務",
+            "enabled": True,
+            "analysis_command": global_cfg.get("analysis_command", ""),
+            "youtube": global_cfg.get("youtube", {}),
+            "prices": global_cfg.get("prices", {}),
+            "search_hours_back": (global_cfg.get("youtube", {}) or {}).get("search_hours_back", 21),
+        }
+        jobs = [legacy_job]
+
+    result = []
+    for job in jobs:
+        jid     = str(job.get("id", ""))
+        enabled = job.get("enabled", True)
+        cron    = str(job.get("schedule", "") or "")
+
+        # Filter by job_id if specified
+        if job_id_filter and jid != job_id_filter:
+            continue
+
+        if not enabled and not job_id_filter:
+            log.info(f"  跳過停用任務：{jid}")
+            continue
+
+        # Check schedule (only when not manually specified)
+        if cron and not job_id_filter:
+            if not _cron_matches_now(cron):
+                log.info(f"  [{jid}] 尚未到執行時間（cron={cron}），跳過")
+                continue
+
+        try:
+            cfg = Config(job, global_cfg)
+            errs = cfg.validate()
+            if errs:
+                log.warning(f"  [{jid}] 設定警告：{'; '.join(errs)}")
+            result.append(cfg)
+        except Exception as e:
+            log.error(f"  [{jid}] Config 建立失敗：{e}")
+
+    if not result:
+        if job_id_filter:
+            log.error(f"找不到 job_id={job_id_filter}")
+        else:
+            log.info("目前時間沒有需要執行的任務")
+    return result
 
 
 # =============================================================================
@@ -221,6 +327,7 @@ class VideoItem:
     duration_text: str
     duration_seconds: int
     description: str = ""
+    source_type: str = "search"   # "search" | "fixed_channel"
 
 
 def parse_views_to_int(v) -> int:
@@ -475,7 +582,8 @@ class YouTubeSearcher:
         """Fetch recent videos from a specific channel within the time window."""
         from urllib.parse import unquote, urlparse as _urlparse
 
-        ref = channel_ref.strip()
+        from urllib.parse import unquote as _url_unquote
+        ref = _url_unquote(channel_ref.strip())   # decode %E6%97%A9... → 早見說財經
         if not ref:
             return []
 
@@ -584,6 +692,7 @@ class YouTubeSearcher:
                 duration_text=seconds_to_hms(dur),
                 duration_seconds=dur,
                 description=safe_str(snippet.get("description")),
+                source_type="fixed_channel",
             ))
 
         result = result[:max_videos]
@@ -762,10 +871,13 @@ def build_full_html_report(
     def _video_rows() -> str:
         rows = []
         for v in videos:
+            src_badge = ('<span style="color:#f59e0b;font-size:10px;margin-left:4px" '
+                         'title="固定頻道來源">📺</span>'
+                         if getattr(v, "source_type", "") == "fixed_channel" else "")
             rows.append(
                 f'<tr>'
                 f'<td class="rank">{v.rank}</td>'
-                f'<td><a href="{v.url}" target="_blank">{v.title}</a></td>'
+                f'<td><a href="{v.url}" target="_blank">{v.title}</a>{src_badge}</td>'
                 f'<td>{v.channel}</td>'
                 f'<td>{v.published_local}</td>'
                 f'<td class="num">{v.views_text}</td>'
@@ -1249,10 +1361,12 @@ def setup_storage_state(b64: str) -> bool:
 
 async def main_async(cfg: Config):
     analysis_date = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-    output_dir    = Path("outputs") / datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M%S")
+    ts_str        = datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d_%H%M%S")
+    output_dir    = Path("outputs") / f"{cfg.job_id}_{ts_str}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     log.info("=" * 60)
+    log.info(f"🏷  任務：{cfg.job_name}  ({cfg.job_id})")
     log.info(f"📅 分析日期：{analysis_date}")
     log.info(f"📋 分析指令：{cfg.analysis_command[:80]}")
     log.info(f"📁 輸出目錄：{output_dir}")
@@ -1382,7 +1496,7 @@ async def main_async(cfg: Config):
 
     # ── Email ────────────────────────────────────────────────────────────────
     log.info("📧 Step 7: 寄送 Email…")
-    email_subject = f"{cfg.subject_prefix} {analysis_date}"
+    email_subject = f"{cfg.subject_prefix} {cfg.job_name} {analysis_date}"
     # Build attachments list: HTML always included, PNG if available
     email_attachments = [html_path]
     if infographic_path and Path(infographic_path).exists():
@@ -1412,11 +1526,38 @@ async def main_async(cfg: Config):
 
 
 def main():
-    cfg    = Config()
-    errors = cfg.validate()
-    if errors:
-        log.warning(f"設定警告（不阻擋執行）：{'; '.join(errors)}")
-    asyncio.run(main_async(cfg))
+    import argparse
+    parser = argparse.ArgumentParser(description="投資日報自動分析")
+    parser.add_argument("--job-id", default=os.environ.get("JOB_ID", ""),
+                        help="指定執行的任務 ID（留空=自動依排程判斷）")
+    parser.add_argument("--list-jobs", action="store_true",
+                        help="列出所有任務設定後退出")
+    args = parser.parse_args()
+
+    if args.list_jobs:
+        global_cfg = _load_yaml_config()
+        jobs = global_cfg.get("jobs", []) or []
+        print(f"共 {len(jobs)} 個任務：")
+        for j in jobs:
+            status = "✅ 啟用" if j.get("enabled", True) else "⛔ 停用"
+            print(f"  [{j.get('id','?')}] {j.get('name','')} | {status} | cron={j.get('schedule','?')}")
+        return
+
+    job_id_filter = args.job_id.strip()
+    if job_id_filter:
+        log.info(f"手動指定執行任務：{job_id_filter}")
+    else:
+        log.info("自動模式：依排程判斷需要執行的任務")
+
+    cfgs = load_jobs_to_run(job_id_filter)
+    if not cfgs:
+        log.info("本次無需執行任何任務，結束。")
+        return
+
+    for cfg in cfgs:
+        log.info(f"\n{'='*60}\n開始執行任務：{cfg.job_name}\n{'='*60}")
+        asyncio.run(main_async(cfg))
+        log.info(f"任務 {cfg.job_id} 完成")
 
 
 if __name__ == "__main__":
