@@ -40,7 +40,7 @@ jobs:
     name: 新任務
     enabled: false
     schedule: "0 1 * * 1-5"
-    search_hours_back: 21
+    search_hours_back: 19
     analysis_command: |
       台股 ETF 0056 00878 高股息 存股｜
       整理本週關於高股息ETF的熱門討論：
