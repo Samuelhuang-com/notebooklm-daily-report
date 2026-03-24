@@ -1,11 +1,5 @@
-# =============================================================================
-# config.yaml – 投資日報設定檔（多任務版）
-# =============================================================================
-# 修改方式：
-#   Web 控制台 → 任意分頁修改 → 點「💾 儲存到 GitHub」
-#
-# 重要：機密資料（API Key / 密碼 / Cookie）請放 GitHub Secrets，不要寫在這裡
-# =============================================================================
+# config.yaml – 由控制台生成 2026-03-24T13:47 UTC
+# 機密資料（API Key / Cookie）請放 GitHub Secrets
 
 defaults:
   region_code: "TW"
@@ -17,11 +11,11 @@ defaults:
 
 jobs:
 
-  - id: morning_tw
-    name: "🌅 台股早報"
+  - id: A0001
+    name: 每小時News
     enabled: true
-    schedule: "0 1 * * 1-5"
-    search_hours_back: 21
+    schedule: "0 0 * * 1-5"
+    search_hours_back: 12
     analysis_command: |
       台股 美股 ETF 投資 財經｜
       請整理今天最熱門的投資影片，重點萃取：
@@ -32,60 +26,18 @@ jobs:
       輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表
     youtube:
       top_n: 10
-      fixed_channels:
-        - "https://www.youtube.com/@早見說財經"
+      region_code: TW
+      language: zh-Hant
+      min_minutes: 0
+      exclude_shorts: true
       channel_videos_per: 3
-    prices:
-      extra_tickers:
-        - "2330"
-        - "0050"
-        - "00878"
-        - "^TWII"
-        - "^GSPC"
-        - "GC=F"
-
-  - id: evening_us
-    name: "🌃 美股晚報"
-    enabled: false
-    schedule: "0 13 * * 1-5"
-    search_hours_back: 10
-    analysis_command: |
-      美股 NASDAQ 科技股 AI 半導體｜
-      分析今天美股收盤後的熱門討論影片
-    youtube:
-      top_n: 8
-      fixed_channels: []
-      channel_videos_per: 3
-    prices:
-      extra_tickers:
-        - "NVDA"
-        - "AAPL"
-        - "^GSPC"
-        - "^IXIC"
-
-  - id: weekly_summary
-    name: "📊 週五週報"
-    enabled: false
-    schedule: "0 10 * * 5"
-    search_hours_back: 120
-    analysis_command: |
-      台股 美股 ETF 投資 財經 黃金 原油｜
-      整理本週投資重點
-    youtube:
-      top_n: 15
       fixed_channels:
-        - "https://www.youtube.com/@早見說財經"
-      channel_videos_per: 5
+        - "https://www.youtube.com/@oldwangstock"
     prices:
-      extra_tickers:
-        - "2330"
-        - "0050"
-        - "^TWII"
-        - "^GSPC"
-        - "GC=F"
+      extra_tickers: []
 
 report:
-  subject_prefix: "📊 投資分析日報"
+  subject_prefix: 📊 投資分析日報
 
 notebooklm:
   infographic_language: "zh_Hant"
