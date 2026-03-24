@@ -1102,7 +1102,6 @@ function parseYaml(text) {
     return v; 
   }
 
-  // 處理多行指令 (|)
   function pblock(baseInd) { 
     var ls = [];
     while (i < lines.length) {
@@ -1125,7 +1124,7 @@ function parseYaml(text) {
       var t = l.trim();
       if (t.startsWith('- ')) {
         var v = t.slice(2).trim();
-        // 檢查是否為陣列中的物件起始
+        // 核心修正：判斷陣列項是否為物件
         if (v === '' || (i + 1 < lines.length && ind(lines[i+1]) > ind(l))) {
           i++; 
           a.push(pmap(ind(l) + 2));
@@ -1155,19 +1154,22 @@ function parseYaml(text) {
       i++;
 
       if (rest === '|' || rest === '|-') {
-        // 多行區塊處理
         var nextIdx = i;
         while(nextIdx < lines.length && lines[nextIdx].trim() === '') nextIdx++;
         o[key] = pblock(nextIdx < lines.length ? ind(lines[nextIdx]) : currentInd + 2);
       } else if (rest === '' || rest === '[]' || rest === '{}') {
-        if (i < lines.length && ind(lines[i]) > currentInd) {
-          if (lines[i].trim().startsWith('- ')) {
-            o[key] = plist(ind(lines[i]));
-          } else {
-            o[key] = pmap(ind(lines[i]));
-          }
-        } else {
-          o[key] = (rest === '[]' ? [] : rest === '{}' ? {} : null);
+        // 核心修正：正確追蹤子區塊縮排
+        if (i < lines.length) {
+            var nextInd = ind(lines[i]);
+            if (nextInd > currentInd) {
+                if (lines[i].trim().startsWith('- ')) {
+                    o[key] = plist(nextInd);
+                } else {
+                    o[key] = pmap(nextInd);
+                }
+            } else {
+                o[key] = (rest === '[]' ? [] : rest === '{}' ? {} : null);
+            }
         }
       } else {
         o[key] = pval(rest);
