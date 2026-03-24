@@ -1075,39 +1075,115 @@ function utf8d(s) {
 // ═══════════════════════════════════════════════════════
 // YAML parser
 // ═══════════════════════════════════════════════════════
+// 替換 control_panel.html 中的 parseYaml 函式
 function parseYaml(text) {
-  var lines = text.split('\n'); var i=0;
-  function ind(l){ return l.match(/^(\s*)/)[1].length; }
-  function skip(){ return i<lines.length&&(lines[i].trim()===''||lines[i].trim().startsWith('#')); }
-  function pval(v){ v=v.trim();
-    if(v==='true')return true; if(v==='false')return false; if(v==='null'||v==='~')return null;
-    if(/^-?\d+$/.test(v))return parseInt(v);
-    if(/^["'].*["']$/.test(v))return v.slice(1,-1); return v; }
-  function pblock(base){ var ls=[];
-    while(i<lines.length){ var l=lines[i];
-      if(l.trim()===''||ind(l)>base){ ls.push(l.trim()===''?'':l.slice(base)); i++; }else break; }
-    return ls.join('\n').trimEnd()+'\n'; }
-  function plist(base){ var a=[];
-    while(i<lines.length){ while(skip())i++; if(i>=lines.length)break; var l=lines[i];
-      if(ind(l)<base)break; var t=l.trim();
-      if(t.startsWith('- ')){var v=t.slice(2).trim();
-        if(/^["'].*["']$/.test(v))v=v.slice(1,-1);
-        var ci=v.indexOf(' #'); if(ci>0)v=v.slice(0,ci).trim().replace(/^["']+|["']+$/g,'');
-        if(v!=='[]')a.push(v); i++;
-      }else if(t==='-'){i++;}else break; } return a; }
-  function pmap(base){ var o={};
-    while(i<lines.length){ while(skip())i++; if(i>=lines.length)break; var l=lines[i];
-      if(l.trim()===''||ind(l)<base)break; var t=l.trim();
-      var ci=t.indexOf(':'); if(ci<0){i++;continue;}
-      var key=t.slice(0,ci).trim(), rest=t.slice(ci+1).trim(); i++;
-      if(rest==='|'||rest==='|-'||rest==='|+'){o[key]=pblock(ind(l)+2);}
-      else if(rest===''||rest==='[]'){
-        while(skip())i++;
-        if(i<lines.length&&ind(lines[i])>ind(l)){
-          if(lines[i].trim().startsWith('- '))o[key]=plist(ind(l)+2);
-          else o[key]=pmap(ind(l)+2);
-        }else o[key]=rest==='[]'?[]:null;
-      }else o[key]=pval(rest); } return o; }
+  var lines = text.split('\n'); 
+  var i = 0;
+
+  function ind(l) { 
+    var m = l.match(/^(\s*)/); 
+    return m ? m[1].length : 0; 
+  }
+
+  function skip() { 
+    while (i < lines.length && (lines[i].trim() === '' || lines[i].trim().startsWith('#'))) {
+      i++;
+    }
+    return i >= lines.length;
+  }
+
+  function pval(v) { 
+    v = v.trim();
+    if (v === 'true') return true; 
+    if (v === 'false') return false;
+    if (v === 'null' || v === '~') return null;
+    if (/^-?\d+$/.test(v)) return parseInt(v);
+    if (/^["'].*["']$/.test(v)) return v.slice(1, -1); 
+    return v; 
+  }
+
+  // 專門處理 analysis_command: | 的多行內容
+  function pblock(baseInd) { 
+    var ls = [];
+    while (i < lines.length) {
+      var l = lines[i];
+      if (l.trim() === '') { 
+        ls.push(''); 
+        i++; 
+        continue; 
+      }
+      if (ind(l) >= baseInd) { 
+        ls.push(l.slice(baseInd)); 
+        i++; 
+      } else {
+        break;
+      }
+    }
+    return ls.join('\n').trimEnd() + '\n';
+  }
+
+  function plist(base) { 
+    var a = [];
+    while (i < lines.length) {
+      if (skip()) break;
+      var l = lines[i];
+      if (ind(l) < base) break;
+      var t = l.trim();
+      if (t.startsWith('- ')) {
+        var v = t.slice(2).trim();
+        if (v === '' || v === '{}' || v === '[]') {
+          // 處理陣列中的物件
+          i++;
+          a.push(pmap(ind(l) + 2));
+        } else {
+          a.push(pval(v));
+          i++;
+        }
+      } else {
+        break;
+      }
+    }
+    return a;
+  }
+
+  function pmap(base) { 
+    var o = {};
+    while (i < lines.length) {
+      if (skip()) break;
+      var l = lines[i];
+      var currentInd = ind(l);
+      if (currentInd < base) break;
+      
+      var t = l.trim();
+      var ci = t.indexOf(':');
+      if (ci < 0) { i++; continue; }
+      
+      var key = t.slice(0, ci).trim();
+      var rest = t.slice(ci + 1).trim();
+      i++;
+
+      if (rest === '|' || rest === '|-') {
+        // 找到下一行有內容的縮排作為基準
+        var nextIdx = i;
+        while(nextIdx < lines.length && lines[nextIdx].trim() === '') nextIdx++;
+        o[key] = pblock(nextIdx < lines.length ? ind(lines[nextIdx]) : currentInd + 2);
+      } else if (rest === '' || rest === '[]' || rest === '{}') {
+        if (i < lines.length && ind(lines[i]) > currentInd) {
+          if (lines[i].trim().startsWith('- ')) {
+            o[key] = plist(ind(lines[i]));
+          } else {
+            o[key] = pmap(ind(lines[i]));
+          }
+        } else {
+          o[key] = (rest === '[]' ? [] : rest === '{}' ? {} : null);
+        }
+      } else {
+        o[key] = pval(rest);
+      }
+    }
+    return o;
+  }
+
   return pmap(0);
 }
 </script>
