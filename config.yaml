@@ -1,34 +1,91 @@
 # =============================================================================
-# config.yaml – 投資日報設定檔
-# 由 Web 控制台自動生成 – 2026-03-24T12:28 (UTC)
+# config.yaml – 投資日報設定檔（多任務版）
+# =============================================================================
+# 修改方式：
+#   Web 控制台 → 任意分頁修改 → 點「💾 儲存到 GitHub」
+#
+# 重要：機密資料（API Key / 密碼 / Cookie）請放 GitHub Secrets，不要寫在這裡
 # =============================================================================
 
-analysis_command: |
-  台股 ETF 0056 00878 高股息 存股｜整理本週關於高股息ETF的熱門討論：各ETF評價比較、除權息策略建議、博主對定期定額vs擇時進場的看法、今年殖利率預估
-
-youtube:
-  top_n: 10
+defaults:
   region_code: "TW"
   language: "zh-Hant"
   min_minutes: 0
   exclude_shorts: true
-  search_hours_back: 21
-  fixed_channels:
-    - "https://www.youtube.com/@oldwangstock"
-    - "https://www.youtube.com/@%E6%97%A9%E8%A6%8B%E8%AA%AA%E8%B2%A1%E7%B6%93"
   channel_videos_per: 3
+  top_n: 10
 
-prices:
-  extra_tickers:
-    - ""2330"      # å°ç©é»"
-    - ""0050"      # åå¤§å°ç£50"
-    - ""00878"     # åæ³°é«è¡æ¯"
-    - ""^TWII"     # å°ç£å æ¬ææ¸"
-    - ""^GSPC"     # S&P 500"
-    - ""GC=F"      # é»éæè²¨"
+jobs:
 
-schedule:
-  cron: "0 0 * * 1-5"
+  - id: morning_tw
+    name: "🌅 台股早報"
+    enabled: true
+    schedule: "0 1 * * 1-5"
+    search_hours_back: 21
+    analysis_command: |
+      台股 美股 ETF 投資 財經｜
+      請整理今天最熱門的投資影片，重點萃取：
+      1. 提到的股票代號、ETF代號、目標價、支撐壓力位
+      2. 博主觀點與市場共識分歧
+      3. 每支影片的核心論點（1-2句）
+      4. 播放量特別高的原因（標題策略、發布時機、獨家資訊）
+      輸出格式：先給5-8點摘要重點，再給來源影片表格，最後給股票/ETF彙整表
+    youtube:
+      top_n: 10
+      fixed_channels:
+        - "https://www.youtube.com/@早見說財經"
+      channel_videos_per: 3
+    prices:
+      extra_tickers:
+        - "2330"
+        - "0050"
+        - "00878"
+        - "^TWII"
+        - "^GSPC"
+        - "GC=F"
+
+  - id: evening_us
+    name: "🌃 美股晚報"
+    enabled: false
+    schedule: "0 13 * * 1-5"
+    search_hours_back: 10
+    analysis_command: |
+      美股 NASDAQ 科技股 AI 半導體｜
+      分析今天美股收盤後的熱門討論影片
+    youtube:
+      top_n: 8
+      fixed_channels: []
+      channel_videos_per: 3
+    prices:
+      extra_tickers:
+        - "NVDA"
+        - "AAPL"
+        - "^GSPC"
+        - "^IXIC"
+
+  - id: weekly_summary
+    name: "📊 週五週報"
+    enabled: false
+    schedule: "0 10 * * 5"
+    search_hours_back: 120
+    analysis_command: |
+      台股 美股 ETF 投資 財經 黃金 原油｜
+      整理本週投資重點
+    youtube:
+      top_n: 15
+      fixed_channels:
+        - "https://www.youtube.com/@早見說財經"
+      channel_videos_per: 5
+    prices:
+      extra_tickers:
+        - "2330"
+        - "0050"
+        - "^TWII"
+        - "^GSPC"
+        - "GC=F"
+
+report:
+  subject_prefix: "📊 投資分析日報"
 
 notebooklm:
   infographic_language: "zh_Hant"
@@ -36,6 +93,3 @@ notebooklm:
     請用繁體中文生成資訊圖表。
     風格清楚、商業報告感，適合主管閱讀。
     重點包含：股票/ETF彙整、博主共識、風險警示。
-
-report:
-  subject_prefix: "📊 投資分析日報"
