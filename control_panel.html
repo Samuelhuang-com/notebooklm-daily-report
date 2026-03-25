@@ -215,6 +215,7 @@ select{cursor:pointer}
     <div class="nav-sec">任務管理</div>
     <div class="nav-item" id="ni-jobs">📋 所有任務</div>
     <div class="nav-sec">工具</div>
+    <div class="nav-item" id="ni-yaml">📄 查看 YAML</div>
     <div class="nav-item" id="ni-conn">🔗 GitHub 連線</div>
   </div>
 
@@ -304,6 +305,45 @@ select{cursor:pointer}
       </div>
     </div>
 
+    <!-- YAML Viewer / Editor -->
+    <div id="sec-yaml" style="display:none">
+      <div class="sec-title">查看 / 編輯 config.yaml</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:13px;color:var(--text2)">直接查看並編輯 GitHub 上的 config.yaml 原始內容</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" id="btnYamlReload">↻ 重新載入</button>
+          <button class="btn btn-success btn-sm" id="btnYamlSave">💾 儲存到 GitHub</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div class="card-title">
+            <span style="font-family:var(--mono);font-size:12px;color:var(--amber)">config.yaml</span>
+            <span id="yaml-meta" style="font-size:11px;color:var(--text3)">尚未載入</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:11px;color:var(--text3)" id="yaml-size"></span>
+            <button class="btn btn-ghost btn-xs" id="btnYamlCopy">📋 複製</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0">
+          <textarea id="yaml-editor"
+            style="width:100%;min-height:600px;background:var(--bg);color:var(--text);
+                   font-family:var(--mono);font-size:12px;line-height:1.6;
+                   border:none;outline:none;padding:18px;resize:vertical;
+                   border-bottom-left-radius:10px;border-bottom-right-radius:10px"
+            spellcheck="false" placeholder="從 GitHub 載入後顯示在這裡…"></textarea>
+        </div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-top:4px">
+        <div style="font-size:12px;color:var(--text2);line-height:1.9">
+          ⚠️ 直接編輯 YAML 時請注意格式，錯誤的縮排會導致程式無法讀取<br>
+          💡 建議修改後先複製備份，再點「💾 儲存到 GitHub」<br>
+          ✅ 儲存後自動同步到「所有任務」頁面
+        </div>
+      </div>
+    </div>
+
   </div><!-- /.content -->
 </div><!-- /.main -->
 
@@ -366,7 +406,11 @@ document.addEventListener('DOMContentLoaded', function() {
   bind('btnAddJob',      addNewJob);
   bind('ni-run',         function(){ navigate('run'); });
   bind('ni-jobs',        function(){ navigate('jobs'); });
+  bind('ni-yaml',        function(){ navigate('yaml'); loadYamlRaw(); });
   bind('ni-conn',        function(){ navigate('conn'); });
+  bind('btnYamlReload',  loadYamlRaw);
+  bind('btnYamlSave',    saveYamlRaw);
+  bind('btnYamlCopy',    copyYaml);
 
   S.pat  = ls('gh_pat')  || '';
   S.repo = ls('gh_repo') || '';
@@ -490,6 +534,15 @@ async function loadConfig() {
     // Ensure jobs array
     if (!G.jobs || !Array.isArray(G.jobs)) G.jobs = [];
     renderJobs(G.jobs);
+    // Also sync to raw YAML editor if it exists
+    var ed = getel('yaml-editor');
+    if (ed && !ed.value) {
+      // Only prefill if editor is empty (don't overwrite user edits)
+      var rawData = utf8d(atob(data.content.replace(/\s/g,'')));
+      ed.value = rawData;
+      var szEl = getel('yaml-size');
+      if (szEl) szEl.textContent = rawData.length + ' 字元';
+    }
     setv('save-status','已載入 · '+new Date().toLocaleTimeString('zh-TW'));
     S.dirty = false;
     toast('config.yaml 載入完成','ok');
@@ -1069,6 +1122,72 @@ function toast(msg, type) {
 // UTF-8 decode
 function utf8d(s) {
   try { return decodeURIComponent(escape(s)); } catch(e) { return s; }
+}
+
+// ═══════════════════════════════════════════════════════
+// YAML viewer / raw editor
+// ═══════════════════════════════════════════════════════
+async function loadYamlRaw() {
+  if (!S.connected) { toast('請先連接 GitHub', 'err'); return; }
+  showLoading('載入 config.yaml…');
+  try {
+    var data = await ghGet('contents/config.yaml');
+    S.sha = data.sha;
+    var raw = utf8d(atob(data.content.replace(/\s/g, '')));
+    var ed  = getel('yaml-editor');
+    if (ed) ed.value = raw;
+    var meta = getel('yaml-meta');
+    var szEl = getel('yaml-size');
+    if (meta) meta.textContent = '最後更新：' + new Date().toLocaleTimeString('zh-TW');
+    if (szEl) szEl.textContent = raw.length + ' 字元';
+    toast('config.yaml 已載入', 'ok');
+  } catch(e) {
+    toast('載入失敗：' + e.message, 'err');
+  }
+  hideLoading();
+}
+
+async function saveYamlRaw() {
+  if (!S.connected) { toast('請先連接 GitHub', 'err'); return; }
+  var ed  = getel('yaml-editor');
+  var raw = ed ? ed.value : '';
+  if (!raw.trim()) { toast('內容不能為空', 'err'); return; }
+  if (!S.sha) { toast('請先載入 config.yaml', 'err'); return; }
+  showLoading('儲存到 GitHub…');
+  try {
+    var bytes = new TextEncoder().encode(raw);
+    var bin = ''; bytes.forEach(function(b){ bin += String.fromCharCode(b); });
+    var res = await ghPut('contents/config.yaml', {
+      message: 'chore: update config.yaml via raw editor [' + new Date().toISOString().slice(0,16) + ']',
+      content: btoa(bin),
+      sha: S.sha
+    });
+    S.sha = res.content.sha;
+    var meta = getel('yaml-meta');
+    if (meta) meta.textContent = '已儲存 · ' + new Date().toLocaleTimeString('zh-TW');
+    toast('✅ config.yaml 已儲存！', 'ok');
+    // Also reload parsed jobs
+    G = parseYaml(raw);
+    if (!G.jobs) G.jobs = [];
+    renderJobs(G.jobs);
+    setv('save-status', '✅ 已儲存 · ' + new Date().toLocaleTimeString('zh-TW'));
+  } catch(e) {
+    toast('儲存失敗：' + e.message, 'err');
+  }
+  hideLoading();
+}
+
+function copyYaml() {
+  var ed = getel('yaml-editor');
+  if (!ed || !ed.value) { toast('沒有內容可複製', 'info'); return; }
+  navigator.clipboard.writeText(ed.value).then(function() {
+    toast('已複製到剪貼簿', 'ok');
+  }).catch(function() {
+    // Fallback
+    ed.select();
+    document.execCommand('copy');
+    toast('已複製', 'ok');
+  });
 }
 
 // ═══════════════════════════════════════════════════════
