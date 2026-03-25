@@ -561,6 +561,27 @@ async function saveConfig() {
   // Collect all job data from the DOM
   collectAllJobs();
   var yaml = buildFullYaml(G);
+
+  // ── Pre-save validation ──────────────────────────────────────────────────
+  try {
+    var testParse = parseYaml(yaml);
+    var testJobs  = testParse.jobs || [];
+    var badJobs = testJobs.filter(function(j){ return typeof j !== 'object' || Array.isArray(j); });
+    if (badJobs.length > 0) {
+      toast('YAML 驗證失敗：有 ' + badJobs.length + ' 個任務格式不正確，請檢查後再儲存', 'err');
+      console.error('Bad jobs:', badJobs);
+      return;
+    }
+    var missingId = testJobs.filter(function(j){ return !j.id; });
+    if (missingId.length > 0) {
+      toast('有任務缺少 ID，請填入任務 ID 後再儲存', 'err');
+      return;
+    }
+  } catch(e) {
+    toast('YAML 格式驗證失敗：' + e.message, 'err');
+    return;
+  }
+
   showLoading('儲存到 GitHub…');
   try {
     var bytes = new TextEncoder().encode(yaml);
@@ -1156,6 +1177,19 @@ async function saveYamlRaw() {
   var raw = ed ? ed.value : '';
   if (!raw.trim()) { toast('內容不能為空', 'err'); return; }
   if (!S.sha) { toast('請先載入 config.yaml', 'err'); return; }
+  // Validate before saving
+  try {
+    var tp = parseYaml(raw);
+    var tj = tp.jobs || [];
+    var bad = tj.filter(function(j){ return typeof j !== 'object' || Array.isArray(j); });
+    if (bad.length) {
+      toast('YAML 格式有誤：jobs 列表解析失敗，請檢查縮排', 'err');
+      return;
+    }
+  } catch(e) {
+    toast('YAML 解析錯誤：' + e.message, 'err');
+    return;
+  }
   showLoading('儲存到 GitHub…');
   try {
     var bytes = new TextEncoder().encode(raw);
