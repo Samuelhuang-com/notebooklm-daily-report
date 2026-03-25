@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LINE Notify 測試工具</title>
+<style>
+  body { font-family: 'Noto Sans TC', sans-serif; background: #06C755; min-height: 100vh;
+         display: flex; align-items: center; justify-content: center; margin: 0; padding: 16px; }
+  .card { background: #fff; border-radius: 16px; padding: 36px; width: 100%; max-width: 480px;
+          box-shadow: 0 8px 40px rgba(0,0,0,.18); }
+  .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .logo-icon { width: 48px; height: 48px; background: #06C755; border-radius: 12px;
+               display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .logo-text h1 { font-size: 18px; font-weight: 700; color: #111; margin: 0; }
+  .logo-text p  { font-size: 12px; color: #888; margin: 2px 0 0; }
+  .fg { margin-bottom: 18px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
+  input, textarea {
+    width: 100%; box-sizing: border-box;
+    border: 1.5px solid #e0e0e0; border-radius: 8px;
+    padding: 10px 14px; font-size: 14px; outline: none; transition: border .15s;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus { border-color: #06C755; }
+  textarea { resize: vertical; min-height: 90px; }
+  .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .btn {
+    width: 100%; padding: 13px; background: #06C755; color: #fff;
+    border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: background .15s; margin-top: 4px;
+  }
+  .btn:hover { background: #05a648; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .result {
+    margin-top: 20px; padding: 14px 16px; border-radius: 8px;
+    font-size: 13px; display: none; line-height: 1.6;
+  }
+  .result.ok  { background: #e8fdf0; border: 1.5px solid #06C755; color: #1a6e35; }
+  .result.err { background: #fff0f0; border: 1.5px solid #f55; color: #a00; }
+  .result.info{ background: #f0f4ff; border: 1.5px solid #5b8cf5; color: #234; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff;
+             border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .verify-btn {
+    font-size: 12px; background: none; border: 1.5px solid #06C755; color: #06C755;
+    border-radius: 6px; padding: 4px 10px; cursor: pointer; margin-left: 8px;
+    vertical-align: middle; transition: all .15s;
+  }
+  .verify-btn:hover { background: #06C755; color: #fff; }
+  a { color: #06C755; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">💬</div>
+    <div class="logo-text">
+      <h1>LINE Notify 測試工具</h1>
+      <p>直接在瀏覽器測試你的 Token 是否有效</p>
+    </div>
+  </div>
+
+  <div class="fg">
+    <label>LINE Notify Token
+      <button class="verify-btn" id="verifyBtn" onclick="verifyToken()">✓ 驗證 Token</button>
+    </label>
+    <input type="password" id="token" placeholder="貼上你的 Token（例：abc123xyz...）"
+           oninput="clearResult()">
+    <div class="hint">
+      沒有 Token？<a href="https://notify-bot.line.me/zh_TW/" target="_blank">點此申請 LINE Notify Token →</a>
+    </div>
+  </div>
+
+  <div class="fg">
+    <label>測試訊息內容</label>
+    <textarea id="message">✅ LINE Notify 測試成功！
+這是從投資日報控制台發出的測試訊息。</textarea>
+  </div>
+
+  <button class="btn" id="sendBtn" onclick="sendNotify()">
+    📤 發送測試通知
+  </button>
+
+  <div class="result" id="result"></div>
+
+  <div style="margin-top:24px;padding-top:20px;border-top:1px solid #f0f0f0">
+    <div style="font-size:12px;color:#aaa;line-height:1.8">
+      <strong style="color:#888">常見問題：</strong><br>
+      ❌ <strong>401</strong> → Token 錯誤或已過期，請重新申請<br>
+      ❌ <strong>400</strong> → 訊息格式有誤<br>
+      ❌ <strong>CORS / Network</strong> → 請確認網路連線正常<br>
+      ✅ <strong>200 ok</strong> → 成功，LINE 應已收到通知
+    </div>
+  </div>
+</div>
+
+<script>
+function clearResult() {
+  var r = document.getElementById('result');
+  r.style.display = 'none';
+}
+
+function showResult(msg, type) {
+  var r = document.getElementById('result');
+  r.className = 'result ' + type;
+  r.innerHTML = msg;
+  r.style.display = 'block';
+}
+
+async function verifyToken() {
+  var token = document.getElementById('token').value.trim();
+  if (!token) { showResult('❌ 請先填入 Token', 'err'); return; }
+
+  var btn = document.getElementById('verifyBtn');
+  btn.disabled = true;
+  btn.textContent = '驗證中…';
+
+  try {
+    var res = await fetch('https://notify-api.line.me/api/status', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var data = await res.json();
+    if (res.ok) {
+      showResult(
+        '✅ <strong>Token 有效！</strong><br>' +
+        '目標：' + (data.target || '未知') + '<br>' +
+        '類型：' + (data.targetType || '未知'),
+        'ok'
+      );
+    } else {
+      showResult('❌ Token 無效（HTTP ' + res.status + '）：' + (data.message || ''), 'err');
+    }
+  } catch(e) {
+    showResult('⚠️ 驗證失敗（網路錯誤）：' + e.message + '<br><small>請確認網路連線，或直接嘗試發送測試通知</small>', 'info');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✓ 驗證 Token';
+}
+
+async function sendNotify() {
+  var token   = document.getElementById('token').value.trim();
+  var message = document.getElementById('message').value.trim();
+
+  if (!token)   { showResult('❌ 請填入 LINE Notify Token', 'err'); return; }
+  if (!message) { showResult('❌ 請填入訊息內容', 'err'); return; }
+
+  var btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>發送中…';
+
+  try {
+    var body = new URLSearchParams();
+    body.append('message', message);
+
+    var res = await fetch('https://notify-api.line.me/api/notify', {
+      method:  'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body:    body
+    });
+
+    var data = await res.json();
+
+    if (res.ok && data.status === 200) {
+      showResult(
+        '✅ <strong>發送成功！</strong><br>' +
+        '請查看你的 LINE，應該已收到通知訊息。<br>' +
+        '<small style="color:#888">HTTP ' + res.status + ' · ' + data.message + '</small>',
+        'ok'
+      );
+    } else {
+      var errMsg = '❌ <strong>發送失敗</strong><br>HTTP ' + res.status;
+      if (data.message) errMsg += '：' + data.message;
+      if (res.status === 401) {
+        errMsg += '<br><br>💡 Token 無效或已過期。<br>' +
+                  '請到 <a href="https://notify-bot.line.me/zh_TW/" target="_blank">LINE Notify 個人頁面</a> 重新申請。';
+      }
+      showResult(errMsg, 'err');
+    }
+  } catch(e) {
+    showResult(
+      '⚠️ <strong>網路錯誤</strong>：' + e.message + '<br><br>' +
+      '如果錯誤是 <em>CORS</em> 相關，表示瀏覽器安全限制阻擋了請求。<br>' +
+      '請改用 PowerShell 測試：<br>' +
+      '<code style="font-size:11px;background:#f5f5f5;padding:6px 8px;border-radius:4px;display:block;margin-top:6px">' +
+      'Invoke-RestMethod -Uri "https://notify-api.line.me/api/notify" -Method POST ' +
+      '-Headers @{ Authorization = "Bearer ' + document.getElementById('token').value.trim().slice(0,6) + '..." } ' +
+      '-Body @{ message = "測試" }' +
+      '</code>',
+      'info'
+    );
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '📤 發送測試通知';
+}
+
+// Enter key in token field → verify
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('token').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') verifyToken();
+  });
+});
+</script>
+</body>
+</html>
