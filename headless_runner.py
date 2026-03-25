@@ -275,7 +275,14 @@ def load_jobs_to_run(job_id_filter: str = "") -> List[tuple]:
         jobs = [legacy_job]
 
     result = []
-    for job in jobs:
+    for idx, job in enumerate(jobs):
+        # Guard: job must be a dict. If YAML was malformed, skip with a clear error.
+        if not isinstance(job, dict):
+            log.error(
+                f"  ⚠ jobs[{idx}] 不是字典（型別：{type(job).__name__}，值：{repr(str(job)[:80])}）"
+                f"\n  → config.yaml 格式有誤，請至 Web 控制台重新儲存"
+            )
+            continue
         jid     = str(job.get("id", ""))
         enabled = job.get("enabled", True)
         cron    = str(job.get("schedule", "") or "")
