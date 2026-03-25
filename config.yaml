@@ -1,4 +1,4 @@
-# config.yaml – 由控制台生成 2026-03-25T01:32 UTC
+# config.yaml – 由控制台生成 2026-03-25T23:45 UTC
 # 機密資料（API Key / Cookie）請放 GitHub Secrets
 
 defaults:
@@ -14,7 +14,7 @@ jobs:
   - id: new_job_1774402254736
     name: 1111
     enabled: true
-    schedule: "0 1 * * 1-5"
+    schedule: "0 0 * * 1-5"
     search_hours_back: 21
     analysis_command: |
       AI 科技股 半導體 輝達 台積電｜
@@ -22,34 +22,6 @@ jobs:
       1. 哪些股票被多個影片同時提到
       2. 具體提到的股價目標和買賣區間
       3. 看多vs看空論點依據
-    youtube:
-      top_n: 10
-      region_code: TW
-      language: zh-Hant
-      min_minutes: 0
-      exclude_shorts: true
-      channel_videos_per: 3
-      fixed_channels: []
-    prices:
-      extra_tickers:
-        - 2330.TW
-        - 0050.TW
-        - ^TWII
-        - ^GSPC
-
-  - id: new_job_1774402297690
-    name: 新任務
-    enabled: true
-    schedule: "0 1 * * 1-5"
-    search_hours_back: 21
-    analysis_command: |
-      台股 美股 ETF 投資 財經 黃金 原油｜
-      整理本週投資重點：
-      【總體環境】Fed、匯率、大盤方向共識
-      【強勢標的】被多個博主提到看好的股票/ETF
-      【風險警示】被提到的風險
-      【博主分歧】觀點相反的地方
-      【本週明星影片】播放量最高的影片與爆紅分析
     youtube:
       top_n: 10
       region_code: TW
