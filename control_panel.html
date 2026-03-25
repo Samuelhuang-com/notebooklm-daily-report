@@ -534,6 +534,8 @@ async function loadConfig() {
     // Ensure jobs array
     if (!G.jobs || !Array.isArray(G.jobs)) G.jobs = [];
     renderJobs(G.jobs);
+    var ltEl = getel('jobs-load-time');
+    if (ltEl) ltEl.textContent = '最後載入：' + new Date().toLocaleTimeString('zh-TW') + '  ·  共 ' + G.jobs.length + ' 個任務';
     // Also sync to raw YAML editor if it exists
     var ed = getel('yaml-editor');
     if (ed && !ed.value) {
@@ -547,6 +549,7 @@ async function loadConfig() {
     S.dirty = false;
     toast('config.yaml 載入完成','ok');
   } catch(e) {
+    renderJobs(null, e.message);
     toast('載入失敗：'+e.message,'err');
     setv('save-status','載入失敗 – '+e.message);
   }
