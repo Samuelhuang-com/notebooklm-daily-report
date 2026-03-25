@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -1073,109 +1072,166 @@ function utf8d(s) {
 }
 
 // ═══════════════════════════════════════════════════════
-// YAML parser
+// YAML parser v2  (supports list-of-maps)
 // ═══════════════════════════════════════════════════════
-// 替換 control_panel.html 中的 parseYaml 函式
 function parseYaml(text) {
-  var lines = text.split('\n'); 
+  var lines = text.split('\n');
   var i = 0;
 
-  function ind(l) { 
-    var m = l.match(/^(\s*)/); 
-    return m ? m[1].length : 0; 
-  }
+  function ind(l) { return l.match(/^(\s*)/)[1].length; }
+  function skip() { return i < lines.length && (lines[i].trim() === '' || lines[i].trim().startsWith('#')); }
 
-  function skip() { 
-    while (i < lines.length && (lines[i].trim() === '' || lines[i].trim().startsWith('#'))) {
-      i++;
-    }
-    return i >= lines.length;
-  }
-
-  function pval(v) { 
+  function pval(v) {
     v = v.trim();
-    if (v === 'true') return true; 
+    if (v === 'true')  return true;
     if (v === 'false') return false;
-    if (v === 'null' || v === '~') return null;
+    if (v === 'null'  || v === '~') return null;
     if (/^-?\d+$/.test(v)) return parseInt(v);
-    if (/^["'].*["']$/.test(v)) return v.slice(1, -1); 
-    return v; 
+    if (/^["'].*["']$/.test(v)) return v.slice(1, -1);
+    return v;
   }
 
-  function pblock(baseInd) { 
+  function pblock(base) {
     var ls = [];
     while (i < lines.length) {
       var l = lines[i];
-      if (l.trim() === '') { ls.push(''); i++; continue; }
-      if (ind(l) >= baseInd) { 
-        ls.push(l.slice(baseInd)); 
-        i++; 
+      if (l.trim() === '' || ind(l) >= base) {
+        ls.push(l.trim() === '' ? '' : l.slice(base));
+        i++;
       } else break;
     }
     return ls.join('\n').trimEnd() + '\n';
   }
 
-  function plist(base) { 
-    var a = [];
-    while (i < lines.length) {
-      if (skip()) break;
-      var l = lines[i];
-      if (ind(l) < base) break;
-      var t = l.trim();
-      if (t.startsWith('- ')) {
-        var v = t.slice(2).trim();
-        // 核心修正：判斷陣列項是否為物件
-        if (v === '' || (i + 1 < lines.length && ind(lines[i+1]) > ind(l))) {
-          i++; 
-          a.push(pmap(ind(l) + 2));
-        } else {
-          a.push(pval(v));
-          i++;
-        }
-      } else break;
-    }
-    return a;
-  }
-
-  function pmap(base) { 
+  function pmap(base) {
     var o = {};
     while (i < lines.length) {
-      if (skip()) break;
+      while (skip()) i++;
+      if (i >= lines.length) break;
       var l = lines[i];
-      var currentInd = ind(l);
-      if (currentInd < base) break;
-      
+      if (l.trim() === '' || ind(l) < base) break;
       var t = l.trim();
       var ci = t.indexOf(':');
       if (ci < 0) { i++; continue; }
-      
       var key = t.slice(0, ci).trim();
       var rest = t.slice(ci + 1).trim();
+      var lInd = ind(l);
       i++;
-
-      if (rest === '|' || rest === '|-') {
-        var nextIdx = i;
-        while(nextIdx < lines.length && lines[nextIdx].trim() === '') nextIdx++;
-        o[key] = pblock(nextIdx < lines.length ? ind(lines[nextIdx]) : currentInd + 2);
-      } else if (rest === '' || rest === '[]' || rest === '{}') {
-        // 核心修正：正確追蹤子區塊縮排
-        if (i < lines.length) {
-            var nextInd = ind(lines[i]);
-            if (nextInd > currentInd) {
-                if (lines[i].trim().startsWith('- ')) {
-                    o[key] = plist(nextInd);
-                } else {
-                    o[key] = pmap(nextInd);
-                }
-            } else {
-                o[key] = (rest === '[]' ? [] : rest === '{}' ? {} : null);
-            }
+      if (rest === '|' || rest === '|-' || rest === '|+') {
+        o[key] = pblock(lInd + 2);
+      } else if (rest === '' || rest === '[]') {
+        while (skip()) i++;
+        if (i < lines.length && ind(lines[i]) > lInd) {
+          if (lines[i].trim().startsWith('- ')) o[key] = plist(lInd + 2);
+          else o[key] = pmap(lInd + 2);
+        } else {
+          o[key] = rest === '[]' ? [] : null;
         }
       } else {
         o[key] = pval(rest);
       }
     }
     return o;
+  }
+
+  // plist: correctly handles both scalar items AND map items ("- key: val")
+  function plist(base) {
+    var a = [];
+    while (i < lines.length) {
+      while (skip()) i++;
+      if (i >= lines.length) break;
+      var l    = lines[i];
+      var lInd = ind(l);
+      if (lInd < base) break;
+      var t = l.trim();
+
+      // bare dash
+      if (t === '-') {
+        i++;
+        while (skip()) i++;
+        if (i < lines.length && ind(lines[i]) > lInd) {
+          if (lines[i].trim().startsWith('- ')) a.push(plist(lInd + 2));
+          else a.push(pmap(lInd + 2));
+        } else a.push(null);
+        continue;
+      }
+
+      if (!t.startsWith('- ')) break;
+
+      var rest    = t.slice(2).trim();
+      var mapBase = lInd + 2;
+
+      // Detect map item: "- key: value" (first char not a quote)
+      var isMap = false;
+      if (rest.length > 0 && rest[0] !== '"' && rest[0] !== "'") {
+        var fc = rest.indexOf(':');
+        if (fc > 0 && (fc + 1 >= rest.length || rest[fc + 1] === ' ' || rest[fc + 1] === '')) {
+          isMap = true;
+        }
+      }
+
+      if (isMap) {
+        i++;  // consume the "- key: val" line
+        var obj  = {};
+        var fci  = rest.indexOf(':');
+        var fKey = rest.slice(0, fci).trim();
+        var fVal = rest.slice(fci + 1).trim();
+
+        // First key's value
+        if (fVal === '|' || fVal === '|-' || fVal === '|+') {
+          obj[fKey] = pblock(mapBase);
+        } else if (fVal === '' || fVal === '[]') {
+          while (skip()) i++;
+          if (i < lines.length && ind(lines[i]) >= mapBase) {
+            if (lines[i].trim().startsWith('- ')) obj[fKey] = plist(mapBase);
+            else obj[fKey] = pmap(mapBase);
+          } else {
+            obj[fKey] = fVal === '[]' ? [] : null;
+          }
+        } else {
+          obj[fKey] = pval(fVal);
+        }
+
+        // Remaining keys of this map item
+        while (i < lines.length) {
+          while (skip()) i++;
+          if (i >= lines.length) break;
+          var nl   = lines[i];
+          var nInd = ind(nl);
+          if (nInd < mapBase) break;
+          var nt   = nl.trim();
+          var nci  = nt.indexOf(':');
+          if (nci < 0) { i++; continue; }
+          var nKey = nt.slice(0, nci).trim();
+          var nVal = nt.slice(nci + 1).trim();
+          i++;
+          if (nVal === '|' || nVal === '|-' || nVal === '|+') {
+            obj[nKey] = pblock(nInd + 2);
+          } else if (nVal === '' || nVal === '[]') {
+            while (skip()) i++;
+            if (i < lines.length && ind(lines[i]) > nInd) {
+              if (lines[i].trim().startsWith('- ')) obj[nKey] = plist(nInd + 2);
+              else obj[nKey] = pmap(nInd + 2);
+            } else {
+              obj[nKey] = nVal === '[]' ? [] : null;
+            }
+          } else {
+            obj[nKey] = pval(nVal);
+          }
+        }
+        a.push(obj);
+
+      } else {
+        // Simple scalar
+        var sv  = rest;
+        if (/^["'].*["']$/.test(sv)) sv = sv.slice(1, -1);
+        var hci = sv.indexOf(' #');
+        if (hci > 0) sv = sv.slice(0, hci).trim().replace(/^["']+|["']+$/g, '');
+        if (sv !== '[]') a.push(sv);
+        i++;
+      }
+    }
+    return a;
   }
 
   return pmap(0);
