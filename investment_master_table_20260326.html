@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>可下單版投資總表 2026.03.26</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0d12;
+    --bg2: #0f141c;
+    --bg3: #151d28;
+    --border: #1e2d3d;
+    --border2: #243447;
+    --text: #c8d8e8;
+    --text-dim: #607080;
+    --text-bright: #e8f4ff;
+    --accent: #00c9ff;
+    --accent2: #7f5af0;
+    --green: #23d18b;
+    --red: #ff4d6a;
+    --yellow: #f7c948;
+    --orange: #ff8c42;
+    --purple: #b08fff;
+    --tag-energy: rgba(255,140,66,0.12);
+    --tag-def: rgba(127,90,240,0.12);
+    --tag-tech: rgba(0,201,255,0.12);
+    --tag-pgm: rgba(247,201,72,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 20px 48px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .header-left h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+  .header-left p {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .header-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-top: 4px;
+  }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+  .badge-green { color: var(--green); border-color: rgba(35,209,139,0.35); background: rgba(35,209,139,0.06); }
+  .badge-yellow { color: var(--yellow); border-color: rgba(247,201,72,0.35); background: rgba(247,201,72,0.06); }
+  .badge-blue { color: var(--accent); border-color: rgba(0,201,255,0.35); background: rgba(0,201,255,0.06); }
+
+  /* ── CAPITAL SUMMARY ── */
+  .cap-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .cap-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .cap-card .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .cap-card .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-bright);
+  }
+  .cap-card .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── ALLOCATION BAR ── */
+  .alloc-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+  .alloc-bar-track {
+    height: 20px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 12px;
+  }
+  .alloc-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    transition: opacity 0.2s;
+  }
+  .alloc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+  }
+  .alloc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .alloc-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead tr {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border2);
+  }
+  th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 10px 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  th.right, td.right { text-align: right; }
+  th.center, td.center { text-align: center; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,201,255,0.04); }
+  tbody tr.excluded { opacity: 0.45; }
+
+  td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .ticker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ticker .star { color: var(--yellow); font-size: 11px; }
+
+  .company-name {
+    font-size: 13px;
+    color: var(--text-bright);
+    white-space: nowrap;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .tag-energy { background: var(--tag-energy); color: var(--orange); border: 1px solid rgba(255,140,66,0.2); }
+  .tag-def    { background: var(--tag-def);    color: var(--purple);  border: 1px solid rgba(127,90,240,0.2); }
+  .tag-tech   { background: var(--tag-tech);   color: var(--accent);  border: 1px solid rgba(0,201,255,0.2); }
+  .tag-pgm    { background: var(--tag-pgm);    color: var(--yellow);  border: 1px solid rgba(247,201,72,0.2); }
+  .tag-etf    { background: rgba(35,209,139,0.1); color: var(--green); border: 1px solid rgba(35,209,139,0.2); }
+
+  .price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .entry-range {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+  }
+  .entry-wait {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--yellow);
+  }
+
+  .pct-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .pct-bar-track {
+    height: 5px;
+    width: 80px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .pct-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+  .pct-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-bright);
+    min-width: 30px;
+  }
+
+  .horizon-pill {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .h-short  { background: rgba(255,77,106,0.12); color: var(--red); border: 1px solid rgba(255,77,106,0.2); }
+  .h-mid    { background: rgba(0,201,255,0.1);   color: var(--accent); border: 1px solid rgba(0,201,255,0.2); }
+  .h-long   { background: rgba(127,90,240,0.1);  color: var(--purple); border: 1px solid rgba(127,90,240,0.2); }
+
+  .priority-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .p1 { background: rgba(255,77,106,0.15); color: var(--red); }
+  .p2 { background: rgba(247,201,72,0.15); color: var(--yellow); }
+  .p3 { background: rgba(0,201,255,0.1);   color: var(--accent); }
+  .p4 { background: rgba(96,112,128,0.2);  color: var(--text-dim); }
+
+  .note-cell {
+    font-size: 11px;
+    color: var(--text-dim);
+    max-width: 200px;
+    white-space: normal;
+    line-height: 1.45;
+  }
+
+  .row-excluded td { color: var(--text-dim) !important; }
+
+  /* ── WARNING BOX ── */
+  .warn-box {
+    background: rgba(247,201,72,0.05);
+    border: 1px solid rgba(247,201,72,0.2);
+    border-left: 3px solid var(--yellow);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .warn-box .w-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--yellow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .warn-box ul {
+    list-style: none;
+    padding: 0;
+  }
+  .warn-box ul li {
+    font-size: 12px;
+    color: var(--text);
+    padding: 3px 0 3px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .warn-box ul li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--yellow);
+    opacity: 0.7;
+  }
+
+  .info-box {
+    background: rgba(0,201,255,0.04);
+    border: 1px solid rgba(0,201,255,0.15);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+  }
+  .info-box .w-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .info-box ul { list-style: none; padding: 0; }
+  .info-box ul li {
+    font-size: 12px;
+    color: var(--text);
+    padding: 3px 0 3px 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .info-box ul li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); opacity: 0.7; }
+
+  .earnings-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+  }
+  .earnings-chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 3px;
+    background: rgba(255,77,106,0.08);
+    border: 1px solid rgba(255,77,106,0.2);
+    color: var(--red);
+  }
+
+  .pgm-best {
+    position: relative;
+  }
+  .pgm-best::before {
+    content: '★ 最看好';
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--yellow);
+    background: var(--bg);
+    padding: 0 4px;
+  }
+
+  .footer-note {
+    margin-top: 32px;
+    padding: 14px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media(max-width:700px){
+    .two-col { grid-template-columns: 1fr; }
+    .header { flex-direction: column; }
+  }
+
+  /* 52w mini bar */
+  .mini52 {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .mini52-track {
+    width: 70px;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    position: relative;
+  }
+  .mini52-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--red), var(--green));
+  }
+  .mini52-dot {
+    position: absolute;
+    top: -3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    transform: translateX(-50%);
+  }
+  .mini52 span {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─── -->
+<div class="header">
+  <div class="header-left">
+    <h1>可下單版 投資總表</h1>
+    <p>生成時間：2026.03.26 ／ 資料來源：Robinhood / Investing.com / MacroTrends</p>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-green">美-伊戰爭進行中</span>
+    <span class="badge badge-yellow">WTI 原油 ~$98</span>
+    <span class="badge badge-blue">黃金 ~$3,100</span>
+  </div>
+</div>
+
+<!-- ─── CAPITAL CARDS ─── -->
+<div class="cap-row">
+  <div class="cap-card">
+    <div class="label">可用台幣資本</div>
+    <div class="value">100萬 NTD</div>
+    <div class="sub">≈ USD $29,800（@33.5）</div>
+  </div>
+  <div class="cap-card">
+    <div class="label">美金定存到期</div>
+    <div class="value">3/28 → 4/24</div>
+    <div class="sub">分批入帳，優先美股</div>
+  </div>
+  <div class="cap-card">
+    <div class="label">ETF 配比</div>
+    <div class="value">38%</div>
+    <div class="sub">SMH 優先（半導體）</div>
+  </div>
+  <div class="cap-card">
+    <div class="label">個股配比</div>
+    <div class="value">62%</div>
+    <div class="sub">防禦＋能源＋PGM</div>
+  </div>
+  <div class="cap-card">
+    <div class="label">已持倉</div>
+    <div class="value">GLD ＋ SLVGLD</div>
+    <div class="sub">黃金＋白銀 已配置</div>
+  </div>
+</div>
+
+<!-- ─── ALLOCATION BAR ─── -->
+<div class="section-title">資金配比視覺化</div>
+<div class="alloc-wrap">
+  <div class="alloc-bar-track">
+    <div class="alloc-seg" style="width:25%;background:rgba(0,201,255,0.7);color:#000;">SMH 25%</div>
+    <div class="alloc-seg" style="width:13%;background:rgba(0,201,255,0.35);color:var(--accent);">XLE 13%</div>
+    <div class="alloc-seg" style="width:18%;background:rgba(127,90,240,0.7);color:#fff;">防禦股 18%</div>
+    <div class="alloc-seg" style="width:12%;background:rgba(127,90,240,0.4);color:var(--purple);">AI/情 12%</div>
+    <div class="alloc-seg" style="width:20%;background:rgba(255,140,66,0.6);color:#000;">能源股 20%</div>
+    <div class="alloc-seg" style="width:7%;background:rgba(247,201,72,0.6);color:#000;">PGM 7%</div>
+    <div class="alloc-seg" style="width:5%;background:rgba(96,112,128,0.4);color:var(--text-dim);">現金</div>
+  </div>
+  <div class="alloc-legend">
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(0,201,255,0.7);"></div>SMH（半導體ETF）25%</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(0,201,255,0.35);"></div>XLE（能源ETF）13%</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(127,90,240,0.7);"></div>軍工防禦股 18%（LMT/RTX/GD/KRMN）</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(127,90,240,0.4);"></div>國防AI 12%（PLTR）</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(255,140,66,0.6);"></div>能源個股 20%（BKR/LNG/CVX/XOM）</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(247,201,72,0.6);"></div>鉑族金屬 PGM 7%（SBSW）</div>
+    <div class="alloc-legend-item"><div class="alloc-dot" style="background:rgba(96,112,128,0.4);"></div>現金備用 5%</div>
+  </div>
+</div>
+
+<!-- ─── MAIN TABLE ─── -->
+<div class="section-title">ETF ／ 個股一覽（可下單參考）</div>
+
+<!-- 即將財報提醒 -->
+<div class="warn-box" style="margin-bottom:14px;">
+  <div class="w-title">⚠ 4月財報季即將開始 — 建議在財報前避免重倉</div>
+  <div class="earnings-row">
+    <span class="earnings-chip">LMT → 4/21</span>
+    <span class="earnings-chip">BKR → 4/22</span>
+    <span class="earnings-chip">RTX → 約4/22</span>
+    <span class="earnings-chip">GD → 4/29</span>
+    <span class="earnings-chip">KRMN → 3/25 剛公布</span>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+  <th>代號</th>
+  <th>公司</th>
+  <th>題材</th>
+  <th class="right">現價(USD)</th>
+  <th>52週區間</th>
+  <th class="right">目標價</th>
+  <th class="right">建議進場區間</th>
+  <th>持倉%</th>
+  <th>期間</th>
+  <th class="center">優先序</th>
+  <th>備註</th>
+</tr>
+</thead>
+<tbody>
+
+<!-- ETF -->
+<tr>
+  <td><div class="ticker">SMH <span class="star">★</span></div></td>
+  <td><div class="company-name">VanEck 半導體ETF</div></td>
+  <td><span class="tag tag-etf">ETF</span> <span class="tag tag-tech">半導體</span></td>
+  <td class="right"><span class="price">$399.02</span></td>
+  <td>
+    <div class="mini52">
+      <span>$170</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:86%;"></div>
+      </div>
+      <span>$428</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$577</td>
+  <td class="right"><span class="entry-range">$380 – $395</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:83%;background:var(--accent);"></div></div>
+      <span class="pct-num">25%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（1–2年）</span></td>
+  <td class="center"><span class="priority-num p1">1</span></td>
+  <td class="note-cell">你最看好第一順位。從52週低$170漲至今+135%，距ATH約-7%。分批買入不追高。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">XLE</div></td>
+  <td><div class="company-name">能源精選ETF（建議新增）</div></td>
+  <td><span class="tag tag-etf">ETF</span> <span class="tag tag-energy">能源</span></td>
+  <td class="right"><span class="price">~$100</span></td>
+  <td>
+    <div class="mini52">
+      <span>$60</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:80%;"></div>
+      </div>
+      <span>$110</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$115</td>
+  <td class="right"><span class="entry-range">$96 – $100</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:43%;background:var(--accent);"></div></div>
+      <span class="pct-num">13%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">對話中能源ETF未選定，建議以XLE替代討論中的能源個股分散風險。</td>
+</tr>
+
+<!-- 防禦 -->
+<tr>
+  <td><div class="ticker">PLTR</div></td>
+  <td><div class="company-name">Palantir Technologies</div></td>
+  <td><span class="tag tag-def">國防AI</span></td>
+  <td class="right"><span class="price">$154.99</span></td>
+  <td>
+    <div class="mini52">
+      <span>$66</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:54%;"></div>
+      </div>
+      <span>$208</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$200</td>
+  <td class="right"><span class="entry-range">$145 – $152</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:40%;background:var(--purple);"></div></div>
+      <span class="pct-num">12%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p1">1</span></td>
+  <td class="note-cell">距ATH -25%，雙底$126支撐已確認。AI＋戰場情報雙催化。Q1財報5/11。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">LMT</div></td>
+  <td><div class="company-name">Lockheed Martin</div></td>
+  <td><span class="tag tag-def">軍工</span></td>
+  <td class="right"><span class="price">$624.74</span></td>
+  <td>
+    <div class="mini52">
+      <span>$410</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:76%;"></div>
+      </div>
+      <span>$692</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$619</td>
+  <td class="right"><span class="entry-wait">$595 – $615</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:23%;background:var(--purple);"></div></div>
+      <span class="pct-num">7%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">已距ATH -10%。$160B+積壓訂單能見度極佳。財報4/21前輕倉。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">RTX</div></td>
+  <td><div class="company-name">RTX Corporation</div></td>
+  <td><span class="tag tag-def">飛彈防空</span></td>
+  <td class="right"><span class="price">$194.40</span></td>
+  <td>
+    <div class="mini52">
+      <span>$112</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:80%;"></div>
+      </div>
+      <span>$215</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$193</td>
+  <td class="right"><span class="entry-wait">$183 – $190</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:20%;background:var(--purple);"></div></div>
+      <span class="pct-num">6%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">Tomahawk飛彈產能加倍。Airbus引擎爭議造成近期小拉回，視為機會。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">KRMN</div></td>
+  <td><div class="company-name">Karman Holdings</div></td>
+  <td><span class="tag tag-def">飛彈零組件</span></td>
+  <td class="right"><span class="price">$101.84</span></td>
+  <td>
+    <div class="mini52">
+      <span>— IPO</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:70%;"></div>
+      </div>
+      <span>$130</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$117</td>
+  <td class="right"><span class="entry-wait">$94 – $100</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:17%;background:var(--purple);"></div></div>
+      <span class="pct-num">5%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-short">短中（3–9月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">3/25剛公布Q4財報，等市場消化後進場。估值偏高，IV=91%，小倉位。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">GD</div></td>
+  <td><div class="company-name">General Dynamics</div></td>
+  <td><span class="tag tag-def">系統整合</span></td>
+  <td class="right"><span class="price">$347.58</span></td>
+  <td>
+    <div class="mini52">
+      <span>$239</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:90%;"></div>
+      </div>
+      <span>$370</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$385</td>
+  <td class="right"><span class="entry-wait">$330 – $345</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:20%;background:var(--purple);"></div></div>
+      <span class="pct-num">6%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p3">3</span></td>
+  <td class="note-cell">近ATH，現金流強勁，配息1.83%。財報4/29前可小量分批。</td>
+</tr>
+
+<!-- 能源 -->
+<tr>
+  <td><div class="ticker">LNG</div></td>
+  <td><div class="company-name">Cheniere Energy</div></td>
+  <td><span class="tag tag-energy">LNG出口</span></td>
+  <td class="right"><span class="price">$286.62</span></td>
+  <td>
+    <div class="mini52">
+      <span>$186</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:85%;"></div>
+      </div>
+      <span>$299</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$320</td>
+  <td class="right"><span class="entry-wait">$268 – $280</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:27%;background:var(--orange);"></div></div>
+      <span class="pct-num">8%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">卡達LNG設施受伊朗飛彈攻擊，歐洲急需美國LNG，受益最直接。等拉回。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">BKR</div></td>
+  <td><div class="company-name">Baker Hughes</div></td>
+  <td><span class="tag tag-energy">油田服務</span></td>
+  <td class="right"><span class="price">$63.49</span></td>
+  <td>
+    <div class="mini52">
+      <span>$33.6</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:83%;"></div>
+      </div>
+      <span>$67</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$75</td>
+  <td class="right"><span class="entry-range">$58 – $62</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:20%;background:var(--orange);"></div></div>
+      <span class="pct-num">6%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p2">2</span></td>
+  <td class="note-cell">LNG＋數據中心雙引擎，已從ATH拉回-10%。財報4/22。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">XOM</div></td>
+  <td><div class="company-name">Exxon Mobil</div></td>
+  <td><span class="tag tag-energy">綜合石油</span></td>
+  <td class="right"><span class="price">$161.40</span></td>
+  <td>
+    <div class="mini52">
+      <span>$97.8</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:94%;"></div>
+      </div>
+      <span>$167</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--green);">$195</td>
+  <td class="right"><span class="entry-wait">$152 – $158</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:17%;background:var(--orange);"></div></div>
+      <span class="pct-num">5%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p3">3</span></td>
+  <td class="note-cell">股價近ATH，配息穩定。Bernstein目標價剛上調至$195。等回調再進。</td>
+</tr>
+
+<tr>
+  <td><div class="ticker">CVX</div></td>
+  <td><div class="company-name">Chevron</div></td>
+  <td><span class="tag tag-energy">綜合石油</span></td>
+  <td class="right"><span class="price">$206.60</span></td>
+  <td>
+    <div class="mini52">
+      <span>$132</span>
+      <div class="mini52-track">
+        <div class="mini52-fill" style="width:100%;"></div>
+        <div class="mini52-dot" style="left:98%;"></div>
+      </div>
+      <span>$210</span>
+    </div>
+  </td>
+  <td class="right" style="color:var(--red);">$183</td>
+  <td class="right"><span class="entry-wait">$193 – $200</span></td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track"><div class="pct-bar-fill" style="width:17%;background:var(--orange);"></div></div>
+      <span class="pct-num">5%</span>
+    </div>
+  </td>
+  <td><span class="horizon-pill h-mid">中（6–18月）</span></td>
+  <td class="center"><span class="priority-num p3">3</span></td>
+  <td class="note-cell">已超過分析師平均目標價$183-184，現價偏高。等回調至$193-200再買。</td>
+</tr>
+
+<!-- 排除 -->
+<tr class="row-excluded">
+  <td><div class="ticker" style="opacity:0.4;">HON</div></td>
+  <td><div class="company-name" style="color:var(--text-dim);">Honeywell</div></td>
+  <td><span class="tag" style="background:rgba(96,112,128,0.1);color:var(--text-dim);border-color:var(--border);">暫不考慮</span></td>
+  <td class="right" style="color:var(--text-dim);">~$235</td>
+  <td>—</td>
+  <td class="right" style="color:var(--text-dim);">—</td>
+  <td class="right" style="color:var(--text-dim);">—</td>
+  <td><span style="color:var(--text-dim);font-size:12px;">0%</span></td>
+  <td>—</td>
+  <td class="center"><span class="priority-num p4">✕</span></td>
+  <td class="note-cell" style="color:var(--text-dim);">業務過廣（像偉創力），Claudia已排除。</td>
+</tr>
+
+</tbody>
+</table>
+</div>
+<p style="font-size:11px;color:var(--text-dim);margin:4px 0 0 4px;">💡 綠色 = 可接近現價進場；黃色 = 等拉回再進。優先序：1=最優先 / 2=資金到位即安排 / 3=等觀察後再決定</p>
+
+<!-- ─── PGM TABLE ─── -->
+<div class="section-title">鉑族金屬（PGM）相關標的</div>
+<p style="font-size:12px;color:var(--text-dim);margin:-6px 0 12px;">涵蓋：釕(Ru)、銥(Ir)、銠(Rh)、鈀(Pd)、鉑(Pt)、鋨(Os)。應用場景：AI伺服器散熱元件、氫燃料電池、汽車觸媒、航太引擎、回收電子廢料（蘋果等）</p>
+
+<div class="table-wrap pgm-best">
+<table>
+<thead>
+<tr>
+  <th>代號</th>
+  <th>公司</th>
+  <th>覆蓋金屬</th>
+  <th>上市地</th>
+  <th class="right">現價(USD)</th>
+  <th class="right">52週低/高</th>
+  <th>推薦度</th>
+  <th>備註</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border: 1px solid rgba(247,201,72,0.3);background:rgba(247,201,72,0.04);">
+  <td><div class="ticker">SBSW <span class="star">★</span></div></td>
+  <td><div class="company-name">Sibanye Stillwater</div></td>
+  <td><span class="tag tag-pgm">Pt/Pd/Rh/Ir/Ru + 金+鋰</span></td>
+  <td style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:12px;">NYSE（最易買）</td>
+  <td class="right"><span class="price" style="color:var(--yellow);">$11.46</span></td>
+  <td class="right" style="font-family:'IBM Plex Mono',monospace;font-size:11px;">$3.05 / $21.29</td>
+  <td><span class="badge badge-yellow">⭐ 最看好</span></td>
+  <td class="note-cell">6種PGM全覆蓋+美國Stillwater礦降低南非政治風險。PGM2025+127%漲幅，近期回調至$11。RBC Buy評級，BMO目標$18。分析師上調目標至$7,574（JSE）。</td>
+</tr>
+<tr>
+  <td><div class="ticker">ANGPY</div></td>
+  <td><div class="company-name">Valterra Platinum（前Anglo American Platinum）</div></td>
+  <td><span class="tag tag-pgm">Pt/Pd/Rh/Ir/Ru/Os</span></td>
+  <td style="color:var(--text-dim);font-size:12px;">OTC（需確認券商支援）</td>
+  <td class="right"><span class="price">$15.36</span></td>
+  <td class="right" style="font-family:'IBM Plex Mono',monospace;font-size:11px;">— / —</td>
+  <td><span class="badge badge-blue">次選</span></td>
+  <td class="note-cell">全球最大PGM生產商，2025從Anglo American分拆。流動性不如SBSW，OTC交易。</td>
+</tr>
+<tr>
+  <td><div class="ticker">IMPUY</div></td>
+  <td><div class="company-name">Impala Platinum</div></td>
+  <td><span class="tag tag-pgm">Pt/Pd/Rh</span></td>
+  <td style="color:var(--text-dim);font-size:12px;">OTC</td>
+  <td class="right"><span class="price">$17.94</span></td>
+  <td class="right" style="font-family:'IBM Plex Mono',monospace;font-size:11px;">— / —</td>
+  <td><span class="badge badge-blue">第三</span></td>
+  <td class="note-cell">南非主要PGM生產商，純度高但南非風險集中。</td>
+</tr>
+<tr>
+  <td><div class="ticker">SPPP</div></td>
+  <td><div class="company-name">Sprott Pt+Pd 實物信託 ETF</div></td>
+  <td><span class="tag tag-pgm">實物Pt + Pd</span></td>
+  <td style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:12px;">NYSE Arca ETF</td>
+  <td class="right"><span class="price">~$20</span></td>
+  <td class="right" style="font-family:'IBM Plex Mono',monospace;font-size:11px;">—</td>
+  <td><span class="badge badge-green">穩健選</span></td>
+  <td class="note-cell">實物金屬信託，不含礦業公司風險，直接追蹤Pt+Pd金屬價格。適合保守型。</td>
+</tr>
+<tr>
+  <td><div class="ticker">PLG</div></td>
+  <td><div class="company-name">Platinum Group Metals Ltd.</div></td>
+  <td><span class="tag tag-pgm">Pt/Pd + 電池金屬</span></td>
+  <td style="color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:12px;">NYSE</td>
+  <td class="right"><span class="price">$2.53</span></td>
+  <td class="right" style="font-family:'IBM Plex Mono',monospace;font-size:11px;">— / —</td>
+  <td><span class="badge badge-yellow">高風高報</span></td>
+  <td class="note-cell">開發期公司，Waterberg礦（南非）可行性研究中。最高風險但潛在倍數大。少量試水。</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p style="font-size:11px;color:var(--text-dim);margin:4px 0 0 4px;">SBSW建議配置約7%（~$2,100）。OTC股票請先確認券商是否支援（永豐/元大/國泰美股帳戶通常支援SBSW/NYSE，OTC需另確認）。</p>
+
+<!-- ─── WARNINGS ─── -->
+<div class="section-title">對話中未充分討論 ─ 重要提醒</div>
+
+<div class="two-col">
+  <div>
+    <div class="warn-box">
+      <div class="w-title">⚠ 風控：必須事先設定</div>
+      <ul>
+        <li>對話中完全沒有設定<strong>停損點</strong>。建議每檔個股設定 -12% ~ -15% 停損。</li>
+        <li>KRMN、PLTR 等高 IV 個股，建議停損設 -15%；防禦藍籌（LMT/RTX）可設 -10%。</li>
+        <li>沒有討論<strong>每筆最大虧損上限</strong>（如單筆不超過總資本5%損失）。</li>
+      </ul>
+    </div>
+    <div class="warn-box">
+      <div class="w-title">⚠ 稅務與匯率風險</div>
+      <ul>
+        <li>美股<strong>股息預扣稅30%</strong>（台灣居民持美股），配息型標的須納入計算。</li>
+        <li>台幣兌美金匯率風險：若台幣升值，美股獲利以台幣計算會縮水。</li>
+        <li>目前USD/TWD約33.5，建議設匯率警戒線。</li>
+      </ul>
+    </div>
+  </div>
+  <div>
+    <div class="info-box">
+      <div class="w-title">ℹ️ 進場節奏建議</div>
+      <ul>
+        <li><strong>3/28</strong>：美金到位→先買SMH（目標2/3倉位），PLTR小倉（1/2倉位）。</li>
+        <li><strong>4/1–4/10</strong>：LMT / RTX / LNG / BKR 各建1/2倉，等拉回補滿。</li>
+        <li><strong>4/15–4/20</strong>：財報前不加倉，觀察市場對財報的預期。</li>
+        <li><strong>財報後</strong>：視反應補倉或停利。GD、CVX、XOM在此時再進。</li>
+        <li><strong>PGM（SBSW）</strong>：可任意時間少量進場，不受財報影響。</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <div class="w-title">ℹ️ 尚未決定的事項</div>
+      <ul>
+        <li>能源ETF：確認選 XLE（大盤能源）還是 OIH（油服集中）。</li>
+        <li>ETF 38% 內，SMH vs XLE 的精確比例未定案。</li>
+        <li>1年後售出部分倉位買房的計畫，需設定明確時間鎖倉目標。</li>
+        <li>台股部分（此份表格未涵蓋）：一詮的進場時機，Samuel說明天再看。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<div class="footer-note">
+  ⚠ 本表格僅供參考，不構成投資建議。股票市場存在風險，投資前請確認自身風險承受能力。現價資料來源為2026/03/25–26 Robinhood / Investing.com，實際下單時請以券商即時報價為準。<br>
+  <span style="color:var(--accent);">Claude AI 製作 · 2026.03.26</span>
+</div>
+
+</body>
+</html>
