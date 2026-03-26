@@ -1,0 +1,19 @@
+name: LINE Token 獨立測試
+
+on: workflow_dispatch
+
+jobs:
+  test-line:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 測試 LINE Notify 連線
+        env:
+          LINE_TOKEN: ${{ secrets.LINE_NOTIFY_TOKEN }}
+        run: |
+          if [ -z "$LINE_TOKEN" ]; then
+            echo "❌ 錯誤：找不到名為 LINE_NOTIFY_TOKEN 的 Secret"
+            exit 1
+          fi
+          curl -X POST https://notify-api.line.me/api/notify \
+            -H "Authorization: Bearer $LINE_TOKEN" \
+            -d "message=%0A🚀 GitHub Actions 測試發送成功！%0A您的 Token 設定正確。"
