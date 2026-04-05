@@ -44,43 +44,109 @@
         line-height: 1.25;
       }
 
-      /* NAV */
+      /* NAV — single unified bar */
       nav {
         background: var(--green);
-        padding: 0 28px;
+        padding: 0 24px;
         display: flex;
         align-items: center;
         gap: 0;
-        height: 56px;
+        height: 64px;
         position: sticky;
         top: 0;
         z-index: 100;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       }
       .nav-brand {
         color: #fff;
         font-family: "Playfair Display", serif;
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 700;
         cursor: pointer;
-        letter-spacing: -0.3px;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding-right: 20px;
+        border-right: 1px solid rgba(255, 255, 255, 0.15);
+        margin-right: 20px;
       }
       .nav-brand span {
         color: var(--amber);
       }
+      .nav-center {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .nav-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+      }
+      .nav-subtitle {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.55);
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .nav-stats {
+        display: flex;
+        flex-shrink: 0;
+        margin: 0 16px;
+        gap: 0;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      .nav-stat {
+        text-align: center;
+        padding: 6px 14px;
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .nav-stat:last-child {
+        border-right: none;
+      }
+      .nav-stat-n {
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+        font-family: "Playfair Display", serif;
+      }
+      .nav-stat-l {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.55);
+        margin-top: 1px;
+        white-space: nowrap;
+      }
       .breadcrumb {
+        display: none;
+      }
+      .breadcrumb.active {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-left: 20px;
         font-size: 13px;
         color: rgba(255, 255, 255, 0.6);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
       }
       .breadcrumb .sep {
         opacity: 0.4;
+        flex-shrink: 0;
       }
       .breadcrumb .crumb {
         color: rgba(255, 255, 255, 0.8);
         cursor: pointer;
+        white-space: nowrap;
       }
       .breadcrumb .crumb:hover {
         color: #fff;
@@ -88,6 +154,9 @@
       .breadcrumb .current {
         color: #fff;
         font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       /* VIEWS */
@@ -111,136 +180,35 @@
 
       /* ========== HOME VIEW ========== */
       .hero {
-        background: linear-gradient(
-          135deg,
-          var(--green) 0%,
-          var(--green-mid) 100%
-        );
-        padding: 20px 32px 18px;
-        color: #fff;
-        position: relative;
-        overflow: hidden;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      .hero::before {
-        content: "";
-        position: absolute;
-        right: -60px;
-        top: -40px;
-        width: 220px;
-        height: 220px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.04);
-      }
-      .hero::after {
-        content: "";
-        position: absolute;
-        right: 60px;
-        bottom: -60px;
-        width: 140px;
-        height: 140px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.03);
-      }
-      .hero-inner {
-        max-width: 1060px;
-        margin: 0 auto;
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 28px;
-      }
-      .hero-text {
-        flex: 1;
-        min-width: 0;
-      }
-      .hero-tag {
-        display: inline-block;
-        background: rgba(233, 168, 37, 0.2);
-        color: var(--amber);
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 1.2px;
-        text-transform: uppercase;
-        padding: 3px 9px;
-        border-radius: 20px;
-        margin-bottom: 6px;
-        border: 1px solid rgba(233, 168, 37, 0.3);
-      }
-      .hero h1 {
-        font-size: 22px;
-        margin-bottom: 2px;
-        letter-spacing: -0.3px;
-        line-height: 1.2;
-      }
-      .hero p {
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.65);
-        max-width: 500px;
-        line-height: 1.5;
-      }
-      .hero-stats {
-        display: flex;
-        flex-shrink: 0;
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
-      .hero-stat {
-        text-align: center;
-        padding: 10px 18px;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .hero-stat:last-child {
-        border-right: none;
-      }
-      .hero-stat-n {
-        font-size: 20px;
-        font-weight: 700;
-        font-family: "Playfair Display", serif;
-        color: #fff;
-        line-height: 1;
-      }
-      .hero-stat-l {
-        font-size: 10px;
-        color: rgba(255, 255, 255, 0.55);
-        margin-top: 2px;
-        white-space: nowrap;
+        display: none;
       }
       .stats-row {
         display: none;
       }
-      .stat-box {
-        text-align: center;
-        padding: 14px;
-      }
-      .stat-n {
-        font-size: 32px;
-        font-weight: 700;
-        font-family: "Playfair Display", serif;
-        color: var(--green);
-        line-height: 1;
-      }
-      .stat-l {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-        letter-spacing: 0.3px;
+      .stat-box,
+      .stat-n,
+      .stat-l,
+      .hero-stats,
+      .hero-stat,
+      .hero-stat-n,
+      .hero-stat-l,
+      .hero-text,
+      .hero-tag {
+        display: none;
       }
 
       .page-inner {
-        max-width: 960px;
+        max-width: 1060px;
         margin: 0 auto;
-        padding: 24px 28px;
+        padding: 20px 28px;
       }
       .section-title {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         letter-spacing: 1.5px;
         text-transform: uppercase;
         color: var(--muted);
-        margin-bottom: 14px;
+        margin-bottom: 12px;
       }
 
       .mod-grid {
@@ -885,24 +853,18 @@
 
       /* RESPONSIVE */
       @media (max-width: 600px) {
-        .hero {
-          padding: 14px 16px;
+        .nav-stats {
+          display: none;
         }
-        .hero-inner {
-          flex-direction: column;
-          gap: 14px;
+        .nav-subtitle {
+          display: none;
         }
-        .hero-stats {
-          width: 100%;
-          justify-content: center;
+        .nav-brand {
+          font-size: 13px;
+          padding-right: 12px;
+          margin-right: 12px;
         }
-        .hero h1 {
-          font-size: 18px;
-        }
-        .stats-row {
-          grid-template-columns: 1fr 1fr;
-          padding: 16px 20px;
-        }
+
         .page-inner {
           padding: 24px 16px;
         }
@@ -1663,12 +1625,34 @@
     </style>
   </head>
   <body>
-    <nav>
-      <span class="nav-brand" onclick="goHome()">Excel<span>課程</span></span>
+    <nav id="main-nav">
+      <span class="nav-brand" onclick="goHome()"
+        >Excel<span>課程</span> — 完整教學</span
+      >
+      <div class="nav-center" id="nav-center">
+        <div class="nav-title">Excel 基礎到進階完整教學課程</div>
+        <div class="nav-subtitle">
+          從零開始系統化學習，告別死記硬背，職場效率大升級
+        </div>
+      </div>
       <div class="breadcrumb" id="breadcrumb"></div>
+      <div class="nav-stats" id="nav-stats">
+        <div class="nav-stat">
+          <div class="nav-stat-n" id="ns-mod">14</div>
+          <div class="nav-stat-l">大模組</div>
+        </div>
+        <div class="nav-stat">
+          <div class="nav-stat-n" id="ns-les">89</div>
+          <div class="nav-stat-l">單元</div>
+        </div>
+        <div class="nav-stat">
+          <div class="nav-stat-n">51</div>
+          <div class="nav-stat-l">核心函數</div>
+        </div>
+      </div>
       <div class="nav-actions">
         <button class="nav-btn" onclick="openSearch()" title="全文搜尋 Ctrl+K">
-          🔍 搜尋 <span class="kbd">Ctrl K</span>
+          ● 搜尋 <span class="kbd">Ctrl+K</span>
         </button>
         <button class="nav-btn" onclick="toggleChat()">🤖 問 AI</button>
       </div>
@@ -1833,33 +1817,6 @@
 
     <!-- ======== HOME VIEW ======== -->
     <div class="view active" id="view-home">
-      <div class="hero">
-        <div class="hero-inner">
-          <div class="hero-text">
-            <div class="hero-tag">完整教學課程</div>
-            <h1>Excel 基礎到進階完整教學課程</h1>
-            <p>從零開始系統化學習，告別死記硬背，職場效率大升級</p>
-          </div>
-          <div class="hero-stats">
-            <div class="hero-stat">
-              <div class="hero-stat-n">10</div>
-              <div class="hero-stat-l">大模組</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-n">43</div>
-              <div class="hero-stat-l">課程單元</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-n">51</div>
-              <div class="hero-stat-l">函數涵蓋</div>
-            </div>
-            <div class="hero-stat">
-              <div class="hero-stat-n">4</div>
-              <div class="hero-stat-l">難度等級</div>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="page-inner">
         <div class="filter-bar" id="filter-bar">
           <span class="filter-bar-label">篩選等級</span>
@@ -5623,18 +5580,44 @@
       }
 
       function updateBreadcrumb() {
-        const bc = document.getElementById("breadcrumb");
+        var bc = document.getElementById("breadcrumb");
+        var nc = document.getElementById("nav-center");
+        var ns = document.getElementById("nav-stats");
         if (state.currentView === "home") {
           bc.innerHTML = "";
+          bc.classList.remove("active");
+          if (nc) nc.style.display = "";
+          if (ns) ns.style.display = "";
           return;
         }
+        if (nc) nc.style.display = "none";
+        if (ns) ns.style.display = "none";
+        bc.classList.add("active");
         const mod = MODULES[state.currentModule];
-        let html = `<span class="crumb" onclick="goHome()">首頁</span><span class="sep">›</span>`;
+        let html =
+          '<span class="crumb" onclick="goHome()">首頁</span><span class="sep">›</span>';
         if (state.currentView === "module") {
-          html += `<span class="current">M${mod.id} ${mod.title.split("：")[0]}</span>`;
+          html +=
+            '<span class="current">M' +
+            mod.id +
+            " " +
+            mod.title.split("：")[0] +
+            "</span>";
         } else {
-          html += `<span class="crumb" onclick="goModule(${state.currentModule})">M${mod.id} ${mod.title.split("：")[0]}</span>`;
-          html += `<span class="sep">›</span><span class="current">${mod.lessons[state.currentLesson].id} ${mod.lessons[state.currentLesson].title}</span>`;
+          html +=
+            '<span class="crumb" onclick="goModule(' +
+            state.currentModule +
+            ')">M' +
+            mod.id +
+            " " +
+            mod.title.split("：")[0] +
+            "</span>";
+          html +=
+            '<span class="sep">›</span><span class="current">' +
+            mod.lessons[state.currentLesson].id +
+            " " +
+            mod.lessons[state.currentLesson].title +
+            "</span>";
         }
         bc.innerHTML = html;
       }
