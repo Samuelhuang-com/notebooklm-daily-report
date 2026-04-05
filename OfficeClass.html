@@ -267,6 +267,34 @@ nav{background:var(--green);padding:0 28px;display:flex;align-items:center;gap:0
   .chat-panel{width:100%;right:0;border-radius:16px 16px 0 0}
   .chat-fab{bottom:20px;right:20px}
 }
+
+/* ========== API KEY MODAL ========== */
+.key-modal-overlay{position:fixed;inset:0;background:rgba(10,20,15,0.7);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);animation:fadeIn .2s ease}
+.key-modal{background:var(--surface);border-radius:16px;width:100%;max-width:480px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,0.2);border:1px solid var(--border);overflow:hidden}
+.key-modal-header{background:var(--green);padding:20px 24px;display:flex;align-items:center;gap:12px}
+.key-modal-header h3{color:#fff;font-size:16px;margin:0;font-family:'DM Sans',sans-serif;font-weight:600}
+.key-modal-body{padding:24px}
+.key-modal-body p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.key-modal-body p a{color:var(--green);text-decoration:none;font-weight:500}
+.key-tabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.key-tab{flex:1;padding:8px;font-size:13px;font-weight:500;border:none;background:transparent;cursor:pointer;color:var(--muted);transition:all .15s;font-family:inherit}
+.key-tab.active{background:var(--green);color:#fff}
+.key-input-group{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.key-input-group label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase}
+.key-input-wrap{display:flex;gap:8px}
+.key-input-wrap input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text);background:var(--bg);outline:none;transition:border-color .15s}
+.key-input-wrap input:focus{border-color:var(--green)}
+.key-show-btn{padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);cursor:pointer;font-size:13px;color:var(--muted);font-family:inherit;white-space:nowrap}
+.key-modal-actions{display:flex;gap:10px}
+.key-save-btn{flex:1;padding:11px;background:var(--green);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
+.key-save-btn:hover{background:var(--green-mid)}
+.key-cancel-btn{padding:11px 18px;border:1px solid var(--border);border-radius:10px;background:transparent;font-size:14px;cursor:pointer;color:var(--muted);font-family:inherit}
+.key-notice{font-size:12px;color:var(--muted);display:flex;align-items:flex-start;gap:6px;background:var(--bg);border-radius:8px;padding:10px 12px;margin-top:12px;border:1px solid var(--border)}
+.chat-header-btn{background:none;border:none;color:rgba(255,255,255,0.65);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:6px;line-height:1;transition:all .15s}
+.chat-header-btn:hover{color:#fff;background:rgba(255,255,255,0.1)}
+.key-status{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:14px;padding:8px 12px;border-radius:8px}
+.key-status.set{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
+.key-status.unset{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
 </style>
 </head>
 <body>
@@ -279,6 +307,40 @@ nav{background:var(--green);padding:0 28px;display:flex;align-items:center;gap:0
     <button class="nav-btn" onclick="toggleChat()">🤖 問 AI</button>
   </div>
 </nav>
+
+
+<!-- API KEY MODAL -->
+<div id="key-modal-overlay" class="key-modal-overlay" style="display:none">
+  <div class="key-modal">
+    <div class="key-modal-header">
+      <span style="font-size:22px">🔑</span>
+      <h3>設定 AI API Key</h3>
+    </div>
+    <div class="key-modal-body">
+      <div id="key-status-bar" class="key-status unset" style="display:none"></div>
+      <p>請輸入您的 API Key，key 只存在您的瀏覽器 localStorage，不會傳送到任何第三方。</p>
+      <div class="key-tabs">
+        <button class="key-tab active" id="tab-openai" onclick="switchKeyTab('openai')">OpenAI</button>
+        <button class="key-tab" id="tab-anthropic" onclick="switchKeyTab('anthropic')">Anthropic</button>
+      </div>
+      <div class="key-input-group">
+        <label id="key-input-label">OpenAI API Key</label>
+        <div class="key-input-wrap">
+          <input type="password" id="key-input-field" placeholder="sk-..." autocomplete="off">
+          <button class="key-show-btn" onclick="toggleKeyVis()">顯示</button>
+        </div>
+      </div>
+      <div class="key-modal-actions">
+        <button class="key-cancel-btn" onclick="closeKeyModal()">取消</button>
+        <button class="key-save-btn" onclick="saveKey()">儲存 Key</button>
+      </div>
+      <div class="key-notice">
+        <span>🔒</span>
+        <span>Key 僅存於您的瀏覽器，不上傳伺服器。OpenAI Key 可至 <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a> 取得。</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- SEARCH OVERLAY -->
 <div class="search-overlay" id="search-overlay" onclick="closeSearchOnBg(event)">
@@ -304,13 +366,14 @@ nav{background:var(--green);padding:0 28px;display:flex;align-items:center;gap:0
       <div class="chat-header-title">Excel AI 助手</div>
       <div class="chat-header-sub">問我任何 Excel 問題</div>
     </div>
-    <button class="chat-clear" onclick="clearChat()">清除</button>
-    <button class="chat-close" onclick="toggleChat()">✕</button>
+    <button class="chat-header-btn" onclick="openKeyModal()" title="設定 API Key">🔑</button>
+    <button class="chat-header-btn" onclick="clearChat()" title="清除對話">🗑</button>
+    <button class="chat-header-btn" onclick="toggleChat()">✕</button>
   </div>
   <div class="chat-messages" id="chat-messages">
     <div class="chat-msg bot">
       <div class="chat-msg-av">🤖</div>
-      <div class="chat-bubble">你好！我是 Excel AI 助手，專門解答 Excel 函數問題。<br>可以問我任何函數的用法、公式寫法、或職場應用場景！</div>
+      <div class="chat-bubble" id="welcome-bubble">你好！我是 Excel AI 助手 🎓<br>請先點右上角 <strong>🔑</strong> 設定 API Key，即可開始問任何 Excel 問題！</div>
     </div>
   </div>
   <div class="chat-suggestions" id="chat-suggestions">
@@ -1189,6 +1252,68 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ============================
+// KEY MODAL
+// ============================
+var currentKeyTab = 'openai';
+
+function switchKeyTab(tab) {
+  currentKeyTab = tab;
+  document.getElementById('tab-openai').classList.toggle('active', tab === 'openai');
+  document.getElementById('tab-anthropic').classList.toggle('active', tab === 'anthropic');
+  document.getElementById('key-input-label').textContent = tab === 'openai' ? 'OpenAI API Key' : 'Anthropic API Key';
+  var placeholder = tab === 'openai' ? 'sk-...' : 'sk-ant-...';
+  document.getElementById('key-input-field').placeholder = placeholder;
+  document.getElementById('key-input-field').value = localStorage.getItem('excel_ai_key_' + tab) || '';
+}
+
+function toggleKeyVis() {
+  var f = document.getElementById('key-input-field');
+  var btn = f.nextElementSibling;
+  if (f.type === 'password') { f.type = 'text'; btn.textContent = '隱藏'; }
+  else { f.type = 'password'; btn.textContent = '顯示'; }
+}
+
+function openKeyModal() {
+  var overlay = document.getElementById('key-modal-overlay');
+  overlay.style.display = 'flex';
+  var existingKey = localStorage.getItem('excel_ai_key_' + currentKeyTab) || '';
+  document.getElementById('key-input-field').value = existingKey;
+  document.getElementById('key-input-field').type = 'password';
+  var sb = document.getElementById('key-status-bar');
+  var providerKey = localStorage.getItem('excel_ai_provider');
+  var storedKey = localStorage.getItem('excel_ai_key_' + (providerKey || 'openai'));
+  if (storedKey) {
+    sb.style.display = 'flex';
+    sb.className = 'key-status set';
+    sb.textContent = '目前已設定 ' + (providerKey === 'anthropic' ? 'Anthropic' : 'OpenAI') + ' Key (' + storedKey.slice(0,8) + '...' + storedKey.slice(-4) + ')';
+    if (providerKey) switchKeyTab(providerKey);
+  } else {
+    sb.style.display = 'none';
+  }
+  setTimeout(function(){ document.getElementById('key-input-field').focus(); }, 100);
+}
+
+function closeKeyModal() {
+  document.getElementById('key-modal-overlay').style.display = 'none';
+}
+
+function saveKey() {
+  var key = document.getElementById('key-input-field').value.trim();
+  if (!key) { alert('請輸入 API Key'); return; }
+  var valid = currentKeyTab === 'openai' ? key.startsWith('sk-') : key.startsWith('sk-ant-');
+  if (!valid) {
+    var expected = currentKeyTab === 'openai' ? 'sk-' : 'sk-ant-';
+    if (!confirm('Key 格式看起來不對（應以 ' + expected + ' 開頭），仍要儲存嗎？')) return;
+  }
+  localStorage.setItem('excel_ai_key_' + currentKeyTab, key);
+  localStorage.setItem('excel_ai_provider', currentKeyTab);
+  closeKeyModal();
+  var bubble = document.getElementById('welcome-bubble');
+  if (bubble) bubble.innerHTML = '🎉 API Key 設定成功！現在可以開始問 Excel 問題了。<br>試試下方的快速提問，或直接輸入你的問題！';
+  document.getElementById('chat-suggestions').style.display = 'flex';
+}
+
+// ============================
 // AI CHAT
 // ============================
 var chatHistory = [];
@@ -1199,7 +1324,11 @@ function toggleChat() {
   var fab = document.getElementById('chat-fab');
   var isOpen = panel.classList.toggle('open');
   fab.textContent = isOpen ? '✕' : '🤖';
-  if (isOpen) setTimeout(function(){ document.getElementById('chat-input').focus(); }, 300);
+  if (isOpen) {
+    var hasKey = !!(localStorage.getItem('excel_ai_key_openai') || localStorage.getItem('excel_ai_key_anthropic'));
+    if (!hasKey) setTimeout(openKeyModal, 400);
+    else setTimeout(function(){ document.getElementById('chat-input').focus(); }, 300);
+  }
 }
 
 function clearChat() {
@@ -1217,10 +1346,7 @@ function sendSuggestion(btn) {
 }
 
 function chatKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendChat();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 }
 
 function autoResize(ta) {
@@ -1233,6 +1359,9 @@ function sendChat() {
   var input = document.getElementById('chat-input');
   var text = input.value.trim();
   if (!text) return;
+  var provider = localStorage.getItem('excel_ai_provider') || 'openai';
+  var key = localStorage.getItem('excel_ai_key_' + provider);
+  if (!key) { openKeyModal(); return; }
   input.value = '';
   input.style.height = 'auto';
   document.getElementById('chat-suggestions').style.display = 'none';
@@ -1245,7 +1374,7 @@ function appendChatMsg(role, text) {
   var div = document.createElement('div');
   div.className = 'chat-msg ' + role;
   var av = role === 'bot' ? '🤖' : '👤';
-  div.innerHTML = '<div class="chat-msg-av">' + av + '</div><div class="chat-bubble" id="bubble-' + Date.now() + '">' + formatChatText(text) + '</div>';
+  div.innerHTML = '<div class="chat-msg-av">' + av + '</div><div class="chat-bubble">' + formatChatText(text) + '</div>';
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
   return div.querySelector('.chat-bubble');
@@ -1276,17 +1405,9 @@ function removeTyping() {
 
 function buildSystemPrompt() {
   var courseInfo = MODULES.map(function(m) {
-    return 'M' + m.id + ' ' + m.title + '：' + m.lessons.map(function(l){ return l.id + ' ' + l.title + '（' + l.funcs.join(', ') + '）'; }).join('；');
+    return 'M' + m.id + ' ' + m.title + ': ' + m.lessons.map(function(l){ return l.id + ' ' + l.title + '(' + l.funcs.join(', ') + ')'; }).join('; ');
   }).join('\n');
-  return '你是一位專業的 Excel 教學助手，熟悉所有 Excel 函數和職場應用場景。\n\n' +
-    '你正在輔助以下課程的學習者：\n' + courseInfo + '\n\n' +
-    '回答規則：\n' +
-    '1. 用繁體中文回答\n' +
-    '2. 語氣親切，像老師一樣解釋\n' +
-    '3. 公式用 `反引號` 包起來\n' +
-    '4. 提供具體例子和語法說明\n' +
-    '5. 回答簡潔有力，不要過於冗長\n' +
-    '6. 如果問題涉及課程內容，可以提醒學員對應的模組';
+  return '你是一位專業的 Excel 教學助手，熟悉所有 Excel 函數和職場應用場景。\n你正在輔助以下課程學習者：\n' + courseInfo + '\n\n回答規則：1.用繁體中文 2.語氣親切 3.公式用`反引號` 4.舉具體例子 5.簡潔有力 6.提醒相關課程模組';
 }
 
 async function callAI(userMsg) {
@@ -1294,57 +1415,79 @@ async function callAI(userMsg) {
   document.getElementById('chat-send').disabled = true;
   showTyping();
   chatHistory.push({ role: 'user', content: userMsg });
+
+  var provider = localStorage.getItem('excel_ai_provider') || 'openai';
+  var key = localStorage.getItem('excel_ai_key_' + provider);
+
+  if (!key) {
+    removeTyping();
+    appendChatMsg('bot', '請先點右上角 🔑 設定 API Key 才能使用 AI 功能。');
+    chatIsLoading = false;
+    document.getElementById('chat-send').disabled = false;
+    return;
+  }
+
   try {
-    var response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1200,
-        stream: true,
-        system: buildSystemPrompt(),
-        messages: chatHistory
-      })
-    });
+    var response;
+    if (provider === 'openai') {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 1000,
+          messages: [{ role: 'system', content: buildSystemPrompt() }].concat(chatHistory)
+        })
+      });
+    } else {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1000,
+          system: buildSystemPrompt(),
+          messages: chatHistory
+        })
+      });
+    }
+
+    removeTyping();
+
     if (!response.ok) {
       var errData = await response.json().catch(function(){ return {}; });
-      removeTyping();
-      var errMsg = errData.error && errData.error.message ? errData.error.message : 'HTTP ' + response.status;
+      var errMsg = (errData.error && (errData.error.message || errData.error.code)) || ('HTTP ' + response.status);
+      if (response.status === 401) errMsg = 'API Key 無效，請點 🔑 重新設定';
+      if (response.status === 429) errMsg = '請求太頻繁，請稍候再試';
+      if (response.status === 402 || response.status === 403) errMsg = 'API 額度不足，請確認帳戶餘額';
       appendChatMsg('bot', '抱歉，發生錯誤：' + errMsg);
       chatIsLoading = false;
       document.getElementById('chat-send').disabled = false;
+      chatHistory.pop();
       return;
     }
-    removeTyping();
-    var bubble = appendChatMsg('bot', '');
-    var fullText = '';
-    var reader = response.body.getReader();
-    var decoder = new TextDecoder();
-    var reading = true;
-    while (reading) {
-      var chunk = await reader.read();
-      if (chunk.done) { reading = false; break; }
-      var rawLines = decoder.decode(chunk.value, { stream: true }).split('\n');
-      for (var ri = 0; ri < rawLines.length; ri++) {
-        var line = rawLines[ri].trim();
-        if (!line.startsWith('data:')) continue;
-        var jsonStr = line.slice(5).trim();
-        if (jsonStr === '[DONE]') { reading = false; break; }
-        try {
-          var evt = JSON.parse(jsonStr);
-          if (evt.type === 'content_block_delta' && evt.delta && evt.delta.text) {
-            fullText += evt.delta.text;
-            bubble.innerHTML = formatChatText(fullText);
-            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-          }
-        } catch(parseErr) {}
-      }
+
+    var data = await response.json();
+    var replyText = '';
+    if (provider === 'openai') {
+      replyText = data.choices && data.choices[0] && data.choices[0].message ? data.choices[0].message.content : '';
+    } else {
+      replyText = data.content && data.content[0] ? data.content[0].text : '';
     }
-    chatHistory.push({ role: 'assistant', content: fullText });
+    chatHistory.push({ role: 'assistant', content: replyText });
+    appendChatMsg('bot', replyText);
+
   } catch (err) {
     removeTyping();
-    appendChatMsg('bot', '網路錯誤，請稍後再試。如果問題持續，請確認網路連線。');
+    var msg = err.message || '';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      appendChatMsg('bot', '網路錯誤。若您在 GitHub Pages 使用 Anthropic Key，請改用 OpenAI Key（點 🔑 切換）。');
+    } else {
+      appendChatMsg('bot', '發生錯誤：' + msg);
+    }
+    chatHistory.pop();
   }
+
   chatIsLoading = false;
   document.getElementById('chat-send').disabled = false;
   document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
